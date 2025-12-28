@@ -1,0 +1,21 @@
+{% extends "dashboard/layout.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Open Table" %}{% endblock %}
+
+{% block content %}
+{% with current_section="tables" section_title=_("Tables") %}
+{{ block.super }}
+{% endwith %}
+{% endblock %}
+
+{% block section_tabbar %}
+<ion-footer>
+{% include "tables/partials/tabbar.html" with current_view='floor' %}
+</ion-footer>
+{% endblock %}
+
+{% block dashboard_content %}
+{% include "tables/partials/table_open.html" %}
+{% endblock %}

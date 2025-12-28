@@ -1,0 +1,21 @@
+{% extends "dashboard/layout.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Tables Settings" %}{% endblock %}
+
+{% block content %}
+{% with current_section="tables" section_title=_("Tables") %}
+{{ block.super }}
+{% endwith %}
+{% endblock %}
+
+{% block section_tabbar %}
+<ion-footer>
+{% include "tables/partials/tabbar.html" with current_view='settings' %}
+</ion-footer>
+{% endblock %}
+
+{% block dashboard_content %}
+{% include "tables/partials/settings.html" %}
+{% endblock %}

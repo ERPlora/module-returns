@@ -1,0 +1,156 @@
+{
+  "module_id": "tables",
+  "name": "Tables & Floor Management",
+  "name_es": "Gestión de Mesas y Planta",
+  "version": "1.0.0",
+  "description": "Table and floor management for hospitality businesses. Manage areas, tables, and link sales to specific tables.",
+  "description_es": "Gestión de mesas y planta para negocios de hostelería. Administra áreas, mesas y vincula ventas a mesas específicas.",
+  "author": "ERPlora",
+  "author_email": "support@erplora.com",
+  "license": "MIT",
+  "category": "hospitality",
+  "industries": [
+    "restaurant",
+    "bar",
+    "cafe",
+    "fast_food",
+    "hotel",
+    "catering",
+    "entertainment"
+  ],
+  "tags": [
+    "tables",
+    "floor",
+    "areas",
+    "seating",
+    "hospitality"
+  ],
+  "icon": "grid-outline",
+  "homepage": "https://github.com/ERPlora/module-tables",
+  "repository_url": "https://github.com/ERPlora/module-tables",
+  "documentation": "https://docs.erplora.com/modules/tables",
+  "dependencies": {
+    "python": [],
+    "modules": [
+      "sales"
+    ]
+  },
+  "compatibility": {
+    "min_erplora_version": "1.0.0",
+    "max_erplora_version": "2.0.0"
+  },
+  "features": {
+    "i18n": true,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "api": true,
+    "webhooks": false,
+    "background_tasks": false,
+    "supports_images": false,
+    "supports_export": false,
+    "supports_import": false
+  },
+  "permissions": [
+    "tables.view_area",
+    "tables.add_area",
+    "tables.change_area",
+    "tables.delete_area",
+    "tables.view_table",
+    "tables.add_table",
+    "tables.change_table",
+    "tables.delete_table",
+    "tables.view_tablesconfig",
+    "tables.change_tablesconfig"
+  ],
+  "menu": {
+    "label": "Floor",
+    "label_es": "Planta",
+    "icon": "grid-outline",
+    "url": "/modules/tables/",
+    "order": 5
+  },
+  "settings": {
+    "default_table_capacity": {
+      "type": "number",
+      "default": 4,
+      "label": "Default Table Capacity",
+      "label_es": "Capacidad de Mesa por Defecto",
+      "description": "Default number of seats when creating a new table",
+      "description_es": "Número de asientos por defecto al crear una mesa"
+    },
+    "show_table_timer": {
+      "type": "boolean",
+      "default": true,
+      "label": "Show Table Timer",
+      "label_es": "Mostrar Temporizador de Mesa",
+      "description": "Show elapsed time since table was occupied",
+      "description_es": "Mostrar tiempo transcurrido desde que la mesa fue ocupada"
+    }
+  },
+  "api_endpoints": [
+    {
+      "path": "/",
+      "method": "GET",
+      "description": "Floor view with tables"
+    },
+    {
+      "path": "/areas/",
+      "method": "GET",
+      "description": "List areas"
+    },
+    {
+      "path": "/areas/create/",
+      "method": "POST",
+      "description": "Create area"
+    },
+    {
+      "path": "/tables/",
+      "method": "GET",
+      "description": "List tables"
+    },
+    {
+      "path": "/tables/create/",
+      "method": "POST",
+      "description": "Create table"
+    },
+    {
+      "path": "/tables/<int:pk>/open/",
+      "method": "POST",
+      "description": "Open table (start sale)"
+    },
+    {
+      "path": "/tables/<int:pk>/close/",
+      "method": "POST",
+      "description": "Close table"
+    },
+    {
+      "path": "/api/status/",
+      "method": "GET",
+      "description": "Get all tables status"
+    }
+  ],
+  "database": {
+    "migrations": true,
+    "models": [
+      "TablesConfig",
+      "Area",
+      "Table"
+    ]
+  },
+  "changelog": {
+    "1.0.0": {
+      "date": "2025-12-27",
+      "changes": [
+        "Initial release",
+        "Area management (zones/sections)",
+        "Table management with status tracking",
+        "Floor view with visual table grid",
+        "Integration with sales module",
+        "Table capacity and status indicators",
+        "Multi-language support (English/Spanish)"
+      ]
+    }
+  }
+}

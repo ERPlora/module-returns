@@ -1,0 +1,178 @@
+{% load i18n %}
+
+<!-- OOB Tabbar Update -->
+<ion-footer hx-swap-oob="innerHTML:#section-tabbar">
+{% include "tables/partials/tabbar.html" with current_view='floor' %}
+</ion-footer>
+
+<ion-content class="ion-padding">
+    <!-- Header with Stats -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">{% trans "Floor View" %}</h1>
+            <p class="text-gray-500">{% trans "Manage tables and active sales" %}</p>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="flex gap-3">
+            <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-center">
+                <div class="text-2xl font-bold">{{ stats.available }}</div>
+                <div class="text-xs">{% trans "Available" %}</div>
+            </div>
+            <div class="bg-red-100 text-red-800 px-4 py-2 rounded-lg text-center">
+                <div class="text-2xl font-bold">{{ stats.occupied }}</div>
+                <div class="text-xs">{% trans "Occupied" %}</div>
+            </div>
+            <div class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-center">
+                <div class="text-2xl font-bold">{{ stats.reserved }}</div>
+                <div class="text-xs">{% trans "Reserved" %}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <ion-card class="mb-4">
+        <ion-card-content class="py-3">
+            <div class="flex flex-wrap gap-2 items-center">
+                <span class="text-sm text-gray-500 mr-2">{% trans "Filter:" %}</span>
+
+                <!-- Area Filter -->
+                <ion-button
+                    fill="{% if not area_filter %}solid{% else %}outline{% endif %}"
+                    size="small"
+                    hx-get="{% url 'tables:floor_view' %}"
+                    hx-target="#dashboard-content"
+                    hx-push-url="true">
+                    {% trans "All Areas" %}
+                </ion-button>
+                {% for area in areas %}
+                <ion-button
+                    fill="{% if area_filter == area.pk|stringformat:'s' %}solid{% else %}outline{% endif %}"
+                    size="small"
+                    style="--ion-color-primary: {{ area.color }}"
+                    hx-get="{% url 'tables:floor_view' %}?area={{ area.pk }}"
+                    hx-target="#dashboard-content"
+                    hx-push-url="true">
+                    <ion-icon name="{{ area.icon }}" slot="start"></ion-icon>
+                    {{ area.name }}
+                </ion-button>
+                {% endfor %}
+
+                <div class="flex-grow"></div>
+
+                <!-- Status Filter -->
+                <ion-segment value="{{ status_filter|default:'all' }}" class="w-auto">
+                    <ion-segment-button value="all"
+                        hx-get="{% url 'tables:floor_view' %}{% if area_filter %}?area={{ area_filter }}{% endif %}"
+                        hx-target="#dashboard-content">
+                        <ion-label>{% trans "All" %}</ion-label>
+                    </ion-segment-button>
+                    <ion-segment-button value="available"
+                        hx-get="{% url 'tables:floor_view' %}?status=available{% if area_filter %}&area={{ area_filter }}{% endif %}"
+                        hx-target="#dashboard-content">
+                        <ion-label>{% trans "Available" %}</ion-label>
+                    </ion-segment-button>
+                    <ion-segment-button value="occupied"
+                        hx-get="{% url 'tables:floor_view' %}?status=occupied{% if area_filter %}&area={{ area_filter }}{% endif %}"
+                        hx-target="#dashboard-content">
+                        <ion-label>{% trans "Occupied" %}</ion-label>
+                    </ion-segment-button>
+                </ion-segment>
+            </div>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Tables Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {% for table in tables %}
+        <div class="table-card cursor-pointer
+            {% if table.status == 'available' %}bg-green-50 border-green-400 hover:bg-green-100{% endif %}
+            {% if table.status == 'occupied' %}bg-red-50 border-red-400 hover:bg-red-100{% endif %}
+            {% if table.status == 'reserved' %}bg-yellow-50 border-yellow-400 hover:bg-yellow-100{% endif %}
+            {% if table.status == 'blocked' %}bg-gray-100 border-gray-400{% endif %}
+            border-2 rounded-xl p-4 transition-all"
+            {% if table.status == 'available' %}
+            hx-get="{% url 'tables:table_open' pk=table.pk %}"
+            {% elif table.status == 'occupied' %}
+            hx-get="/modules/sales/?table={{ table.pk }}"
+            {% endif %}
+            hx-target="#dashboard-content"
+            hx-push-url="true">
+
+            <!-- Table Number -->
+            <div class="text-center mb-2">
+                <div class="text-3xl font-bold
+                    {% if table.status == 'available' %}text-green-700{% endif %}
+                    {% if table.status == 'occupied' %}text-red-700{% endif %}
+                    {% if table.status == 'reserved' %}text-yellow-700{% endif %}
+                    {% if table.status == 'blocked' %}text-gray-500{% endif %}">
+                    {{ table.number }}
+                </div>
+                {% if table.name %}
+                <div class="text-xs text-gray-500 truncate">{{ table.name }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Table Info -->
+            <div class="text-center text-xs space-y-1">
+                {% if table.area %}
+                <div class="text-gray-400">{{ table.area.name }}</div>
+                {% endif %}
+
+                {% if table.status == 'occupied' %}
+                    <!-- Occupied Info -->
+                    <div class="flex justify-center gap-2 text-gray-600">
+                        <span><ion-icon name="people"></ion-icon> {{ table.guests }}</span>
+                        <span><ion-icon name="time"></ion-icon> {{ table.elapsed_display }}</span>
+                    </div>
+                    {% if config.show_table_total and table.current_total %}
+                    <div class="text-lg font-bold text-red-600">
+                        {{ table.current_total }} &euro;
+                    </div>
+                    {% endif %}
+                    {% if table.waiter %}
+                    <div class="text-gray-400 truncate">{{ table.waiter }}</div>
+                    {% endif %}
+                {% else %}
+                    <!-- Available Info -->
+                    <div class="text-gray-400">
+                        <ion-icon name="people"></ion-icon> {{ table.capacity }}
+                    </div>
+                    <div class="text-xs uppercase tracking-wide
+                        {% if table.status == 'available' %}text-green-600{% endif %}
+                        {% if table.status == 'reserved' %}text-yellow-600{% endif %}
+                        {% if table.status == 'blocked' %}text-gray-500{% endif %}">
+                        {% if table.status == 'available' %}{% trans "Available" %}{% endif %}
+                        {% if table.status == 'reserved' %}{% trans "Reserved" %}{% endif %}
+                        {% if table.status == 'blocked' %}{% trans "Blocked" %}{% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12">
+            <ion-icon name="grid-outline" class="text-6xl text-gray-300 mb-4"></ion-icon>
+            <p class="text-gray-500 mb-4">{% trans "No tables found" %}</p>
+            <ion-button
+                hx-get="{% url 'tables:table_create' %}"
+                hx-target="#dashboard-content"
+                hx-push-url="true">
+                <ion-icon slot="start" name="add"></ion-icon>
+                {% trans "Add First Table" %}
+            </ion-button>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- FAB for adding tables -->
+    {% if tables %}
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+        <ion-fab-button
+            hx-get="{% url 'tables:table_create' %}"
+            hx-target="#dashboard-content"
+            hx-push-url="true">
+            <ion-icon name="add"></ion-icon>
+        </ion-fab-button>
+    </ion-fab>
+    {% endif %}
+</ion-content>

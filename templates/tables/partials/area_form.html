@@ -1,0 +1,127 @@
+{% load i18n %}
+
+<!-- OOB Tabbar Update -->
+<ion-footer hx-swap-oob="innerHTML:#section-tabbar">
+{% include "tables/partials/tabbar.html" with current_view='areas' %}
+</ion-footer>
+
+<ion-content class="ion-padding">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-6">
+        <ion-button
+            fill="clear"
+            hx-get="{% url 'tables:area_list' %}"
+            hx-target="#dashboard-content"
+            hx-push-url="true">
+            <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+        </ion-button>
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% if is_edit %}{% trans "Edit Area" %}{% else %}{% trans "New Area" %}{% endif %}
+        </h1>
+    </div>
+
+    <ion-card>
+        <ion-card-content>
+            <form method="post"
+                hx-post="{% if is_edit %}{% url 'tables:area_edit' pk=area.pk %}{% else %}{% url 'tables:area_create' %}{% endif %}"
+                hx-target="#dashboard-content">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Name -->
+                    <div class="md:col-span-2">
+                        <ion-label class="text-sm text-gray-600">{% trans "Name" %} *</ion-label>
+                        <ion-input
+                            name="name"
+                            value="{{ area.name|default:form_data.name }}"
+                            placeholder="{% trans 'e.g., Main Floor, Terrace' %}"
+                            required
+                            class="mt-1">
+                        </ion-input>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="md:col-span-2">
+                        <ion-label class="text-sm text-gray-600">{% trans "Description" %}</ion-label>
+                        <ion-textarea
+                            name="description"
+                            placeholder="{% trans 'Optional description' %}"
+                            rows="2"
+                            class="mt-1">{{ area.description|default:form_data.description }}</ion-textarea>
+                    </div>
+
+                    <!-- Color -->
+                    <div>
+                        <ion-label class="text-sm text-gray-600">{% trans "Color" %}</ion-label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <input
+                                type="color"
+                                name="color"
+                                value="{{ area.color|default:form_data.color|default:'#3B82F6' }}"
+                                class="w-12 h-10 rounded cursor-pointer">
+                            <span class="text-gray-500 text-sm">{% trans "Pick a color for visual identification" %}</span>
+                        </div>
+                    </div>
+
+                    <!-- Icon -->
+                    <div>
+                        <ion-label class="text-sm text-gray-600">{% trans "Icon" %}</ion-label>
+                        <ion-select
+                            name="icon"
+                            value="{{ area.icon|default:form_data.icon|default:'grid-outline' }}"
+                            interface="popover"
+                            class="mt-1">
+                            <ion-select-option value="grid-outline">Grid</ion-select-option>
+                            <ion-select-option value="home-outline">Home</ion-select-option>
+                            <ion-select-option value="cafe-outline">Cafe</ion-select-option>
+                            <ion-select-option value="restaurant-outline">Restaurant</ion-select-option>
+                            <ion-select-option value="beer-outline">Bar</ion-select-option>
+                            <ion-select-option value="sunny-outline">Terrace</ion-select-option>
+                            <ion-select-option value="wine-outline">VIP</ion-select-option>
+                            <ion-select-option value="business-outline">Private</ion-select-option>
+                        </ion-select>
+                    </div>
+
+                    <!-- Order -->
+                    <div>
+                        <ion-label class="text-sm text-gray-600">{% trans "Display Order" %}</ion-label>
+                        <ion-input
+                            type="number"
+                            name="order"
+                            value="{{ area.order|default:form_data.order|default:0 }}"
+                            min="0"
+                            class="mt-1">
+                        </ion-input>
+                    </div>
+
+                    <!-- Active -->
+                    {% if is_edit %}
+                    <div>
+                        <ion-label class="text-sm text-gray-600">{% trans "Status" %}</ion-label>
+                        <ion-item lines="none" class="mt-1">
+                            <ion-checkbox name="is_active" {% if area.is_active %}checked{% endif %}></ion-checkbox>
+                            <ion-label class="ml-2">{% trans "Active" %}</ion-label>
+                        </ion-item>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                    <ion-button
+                        fill="outline"
+                        color="medium"
+                        hx-get="{% url 'tables:area_list' %}"
+                        hx-target="#dashboard-content"
+                        hx-push-url="true">
+                        {% trans "Cancel" %}
+                    </ion-button>
+                    <ion-button type="submit">
+                        <ion-icon slot="start" name="checkmark"></ion-icon>
+                        {% if is_edit %}{% trans "Save Changes" %}{% else %}{% trans "Create Area" %}{% endif %}
+                    </ion-button>
+                </div>
+            </form>
+        </ion-card-content>
+    </ion-card>
+</ion-content>

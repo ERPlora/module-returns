@@ -1,0 +1,78 @@
+{% load i18n %}
+
+<!-- OOB Tabbar Update -->
+<ion-footer hx-swap-oob="innerHTML:#section-tabbar">
+{% include "tables/partials/tabbar.html" with current_view='areas' %}
+</ion-footer>
+
+<ion-content class="ion-padding">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">{% trans "Areas" %}</h1>
+            <p class="text-gray-500">{% trans "Manage floor sections and zones" %}</p>
+        </div>
+        <ion-button
+            hx-get="{% url 'tables:area_create' %}"
+            hx-target="#dashboard-content"
+            hx-push-url="true">
+            <ion-icon slot="start" name="add"></ion-icon>
+            {% trans "New Area" %}
+        </ion-button>
+    </div>
+
+    <!-- Areas List -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for area in areas %}
+        <ion-card class="cursor-pointer hover:shadow-lg transition-shadow"
+            hx-get="{% url 'tables:area_detail' pk=area.pk %}"
+            hx-target="#dashboard-content"
+            hx-push-url="true">
+            <ion-card-header>
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center"
+                         style="background-color: {{ area.color }}20; color: {{ area.color }}">
+                        <ion-icon name="{{ area.icon }}" class="text-2xl"></ion-icon>
+                    </div>
+                    <div class="flex-grow">
+                        <ion-card-title>{{ area.name }}</ion-card-title>
+                        <ion-card-subtitle>
+                            {{ area.table_count }} {% trans "tables" %}
+                        </ion-card-subtitle>
+                    </div>
+                    {% if not area.is_active %}
+                    <ion-badge color="medium">{% trans "Inactive" %}</ion-badge>
+                    {% endif %}
+                </div>
+            </ion-card-header>
+            <ion-card-content>
+                {% if area.description %}
+                <p class="text-gray-500 text-sm mb-3">{{ area.description }}</p>
+                {% endif %}
+                <div class="flex gap-4 text-sm">
+                    <span class="text-green-600">
+                        <ion-icon name="checkmark-circle"></ion-icon>
+                        {{ area.available_count }} {% trans "available" %}
+                    </span>
+                    <span class="text-red-600">
+                        <ion-icon name="people"></ion-icon>
+                        {{ area.occupied_count }} {% trans "occupied" %}
+                    </span>
+                </div>
+            </ion-card-content>
+        </ion-card>
+        {% empty %}
+        <div class="col-span-full text-center py-12">
+            <ion-icon name="layers-outline" class="text-6xl text-gray-300 mb-4"></ion-icon>
+            <p class="text-gray-500 mb-4">{% trans "No areas defined" %}</p>
+            <ion-button
+                hx-get="{% url 'tables:area_create' %}"
+                hx-target="#dashboard-content"
+                hx-push-url="true">
+                <ion-icon slot="start" name="add"></ion-icon>
+                {% trans "Create First Area" %}
+            </ion-button>
+        </div>
+        {% endfor %}
+    </div>
+</ion-content>
