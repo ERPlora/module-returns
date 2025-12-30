@@ -1,0 +1,116 @@
+{% load i18n %}
+
+{% if request.htmx %}
+<ion-footer id="dashboard-tabbar" hx-swap-oob="outerHTML" style="display: none;"></ion-footer>
+{% endif %}
+
+<ion-content class="ion-padding">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-6">
+        <ion-button
+            fill="clear"
+            hx-get="{% url 'returns:credit_list' %}"
+            hx-target="#main-content-area"
+            hx-push-url="true">
+            <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+        </ion-button>
+        <div class="flex-grow">
+            <h1 class="text-2xl font-bold text-gray-900">{{ credit.code }}</h1>
+            <p class="text-gray-500">{% trans "Store Credit" %}</p>
+        </div>
+        <ion-badge color="{% if credit.is_valid %}success{% else %}medium{% endif %}">
+            {% if credit.is_valid %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
+        </ion-badge>
+    </div>
+
+    <!-- Balance Card -->
+    <ion-card class="mb-4">
+        <ion-card-content>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                <div>
+                    <div class="text-3xl font-bold text-green-600">{{ credit.current_amount }} &euro;</div>
+                    <div class="text-sm text-gray-500">{% trans "Current Balance" %}</div>
+                </div>
+                <div>
+                    <div class="text-3xl font-bold text-gray-600">{{ credit.original_amount }} &euro;</div>
+                    <div class="text-sm text-gray-500">{% trans "Original Amount" %}</div>
+                </div>
+                {% if credit.expires_at %}
+                <div>
+                    <div class="text-xl font-bold {% if credit.is_expired %}text-red-600{% else %}text-gray-600{% endif %}">
+                        {{ credit.expires_at|date:"d/m/Y" }}
+                    </div>
+                    <div class="text-sm text-gray-500">{% trans "Expires" %}</div>
+                </div>
+                {% endif %}
+            </div>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Customer Info -->
+    <ion-card class="mb-4">
+        <ion-card-header>
+            <ion-card-title>{% trans "Customer Information" %}</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-list>
+                {% if credit.customer_name %}
+                <ion-item>
+                    <ion-icon slot="start" name="person-outline"></ion-icon>
+                    <ion-label>{{ credit.customer_name }}</ion-label>
+                </ion-item>
+                {% endif %}
+                {% if credit.customer_email %}
+                <ion-item>
+                    <ion-icon slot="start" name="mail-outline"></ion-icon>
+                    <ion-label>{{ credit.customer_email }}</ion-label>
+                </ion-item>
+                {% endif %}
+                {% if credit.customer_phone %}
+                <ion-item>
+                    <ion-icon slot="start" name="call-outline"></ion-icon>
+                    <ion-label>{{ credit.customer_phone }}</ion-label>
+                </ion-item>
+                {% endif %}
+                {% if not credit.customer_name and not credit.customer_email and not credit.customer_phone %}
+                <ion-item>
+                    <ion-label class="text-gray-500">{% trans "No customer information" %}</ion-label>
+                </ion-item>
+                {% endif %}
+            </ion-list>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Details -->
+    <ion-card class="mb-4">
+        <ion-card-header>
+            <ion-card-title>{% trans "Details" %}</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-list>
+                <ion-item>
+                    <ion-label>{% trans "Created" %}</ion-label>
+                    <ion-note slot="end">{{ credit.created_at|date:"d/m/Y H:i" }}</ion-note>
+                </ion-item>
+                {% if credit.return_order %}
+                <ion-item
+                    button
+                    hx-get="{% url 'returns:return_detail' pk=credit.return_order.pk %}"
+                    hx-target="#main-content-area"
+                    hx-push-url="true">
+                    <ion-label>{% trans "Related Return" %}</ion-label>
+                    <ion-note slot="end">{{ credit.return_order.return_number }}</ion-note>
+                </ion-item>
+                {% endif %}
+                {% if credit.notes %}
+                <ion-item>
+                    <ion-label class="ion-text-wrap">
+                        <h3>{% trans "Notes" %}</h3>
+                        <p>{{ credit.notes }}</p>
+                    </ion-label>
+                </ion-item>
+                {% endif %}
+            </ion-list>
+        </ion-card-content>
+    </ion-card>
+</ion-content>

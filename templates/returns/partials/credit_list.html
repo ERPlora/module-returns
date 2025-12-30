@@ -1,0 +1,126 @@
+{% load i18n %}
+
+{% if request.htmx %}
+{% include "returns/partials/tabbar.html" with current_view='credits' oob=True %}
+{% endif %}
+
+<ion-content class="ion-padding">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">{% trans "Store Credits" %}</h1>
+            <p class="text-gray-500">{% trans "Manage store credit accounts" %}</p>
+        </div>
+        <ion-button
+            hx-get="{% url 'returns:credit_create' %}"
+            hx-target="#main-content-area"
+            hx-push-url="true">
+            <ion-icon slot="start" name="add"></ion-icon>
+            {% trans "Issue Credit" %}
+        </ion-button>
+    </div>
+
+    <!-- Search and Filters -->
+    <ion-card class="mb-4">
+        <ion-card-content>
+            <div class="flex flex-wrap gap-4">
+                <div class="flex-grow">
+                    <ion-searchbar
+                        placeholder="{% trans 'Search by code, name, email, phone...' %}"
+                        value="{{ search }}"
+                        debounce="300"
+                        hx-get="{% url 'returns:credit_list' %}"
+                        hx-trigger="ionInput delay:300ms"
+                        hx-target="#main-content-area"
+                        hx-include="[name='active']"
+                        name="search">
+                    </ion-searchbar>
+                </div>
+                <div class="flex items-center gap-2">
+                    <ion-checkbox
+                        name="active"
+                        value="1"
+                        {% if active_only == '1' %}checked{% endif %}
+                        hx-get="{% url 'returns:credit_list' %}"
+                        hx-trigger="ionChange"
+                        hx-target="#main-content-area"
+                        hx-include="[name='search']">
+                    </ion-checkbox>
+                    <ion-label>{% trans "Active only" %}</ion-label>
+                </div>
+            </div>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Credits List -->
+    <ion-card>
+        <ion-card-content class="p-0">
+            {% if credits %}
+            <ion-list>
+                {% for credit in credits %}
+                <ion-item
+                    button
+                    hx-get="{% url 'returns:credit_detail' pk=credit.pk %}"
+                    hx-target="#main-content-area"
+                    hx-push-url="true">
+                    <ion-label>
+                        <h2 class="font-medium">{{ credit.code }}</h2>
+                        <p class="text-sm text-gray-500">
+                            {% if credit.customer_name %}{{ credit.customer_name }}{% endif %}
+                            {% if credit.customer_email %} - {{ credit.customer_email }}{% endif %}
+                        </p>
+                    </ion-label>
+                    <div slot="end" class="text-right">
+                        <div class="font-bold {% if credit.is_valid %}text-green-600{% else %}text-gray-400{% endif %}">
+                            {{ credit.current_amount }} &euro;
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            {% if credit.is_valid %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
+                        </div>
+                    </div>
+                </ion-item>
+                {% endfor %}
+            </ion-list>
+
+            <!-- Pagination -->
+            {% if credits.has_other_pages %}
+            <div class="flex justify-center gap-2 p-4 border-t">
+                {% if credits.has_previous %}
+                <ion-button
+                    fill="outline"
+                    size="small"
+                    hx-get="{% url 'returns:credit_list' %}?page={{ credits.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if active_only %}&active={{ active_only }}{% endif %}"
+                    hx-target="#main-content-area">
+                    <ion-icon name="chevron-back"></ion-icon>
+                </ion-button>
+                {% endif %}
+                <span class="flex items-center px-3">
+                    {{ credits.number }} / {{ credits.paginator.num_pages }}
+                </span>
+                {% if credits.has_next %}
+                <ion-button
+                    fill="outline"
+                    size="small"
+                    hx-get="{% url 'returns:credit_list' %}?page={{ credits.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if active_only %}&active={{ active_only }}{% endif %}"
+                    hx-target="#main-content-area">
+                    <ion-icon name="chevron-forward"></ion-icon>
+                </ion-button>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-12 text-gray-500">
+                <ion-icon name="card-outline" class="text-5xl mb-4"></ion-icon>
+                <p class="mb-4">{% trans "No store credits found" %}</p>
+                <ion-button
+                    hx-get="{% url 'returns:credit_create' %}"
+                    hx-target="#main-content-area"
+                    hx-push-url="true">
+                    <ion-icon slot="start" name="add"></ion-icon>
+                    {% trans "Issue First Credit" %}
+                </ion-button>
+            </div>
+            {% endif %}
+        </ion-card-content>
+    </ion-card>
+</ion-content>

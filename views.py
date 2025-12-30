@@ -4,6 +4,8 @@ Returns & Refunds Module Views
 Provides return processing, store credit management, and refund handling.
 """
 
+import json
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
@@ -31,6 +33,8 @@ def dashboard(request):
     """
     Returns module dashboard with statistics.
     """
+    from apps.core.services.currency_service import format_currency
+
     config = ReturnsConfig.get_config()
 
     # Get filter parameters
@@ -56,8 +60,12 @@ def dashboard(request):
         status=Return.STATUS_PROCESSED
     ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
 
-    # Recent returns
-    recent_returns = returns.order_by('-created_at')[:10]
+    # Recent returns with formatted amounts
+    recent_returns_qs = returns.order_by('-created_at')[:10]
+    recent_returns = []
+    for ret in recent_returns_qs:
+        ret.total_amount_formatted = format_currency(ret.total_amount)
+        recent_returns.append(ret)
 
     context = {
         'config': config,
@@ -67,7 +75,7 @@ def dashboard(request):
             'total': total_returns,
             'pending': pending_returns,
             'processed': processed_returns,
-            'total_refunded': total_refunded,
+            'total_refunded_formatted': format_currency(total_refunded),
         }
     }
 
@@ -552,22 +560,28 @@ def credit_lookup(request):
 def settings_view(request):
     """Returns module settings."""
     config = ReturnsConfig.get_config()
+    return {'config': config}
 
-    if request.method == 'POST':
-        config.allow_returns = request.POST.get('allow_returns') == 'on'
-        config.return_window_days = int(request.POST.get('return_window_days', 30))
-        config.allow_store_credit = request.POST.get('allow_store_credit') == 'on'
-        config.require_receipt = request.POST.get('require_receipt') == 'on'
-        config.auto_restore_stock = request.POST.get('auto_restore_stock') == 'on'
+
+@require_POST
+def settings_save(request):
+    """Save returns settings via JSON."""
+    try:
+        data = json.loads(request.body)
+        config = ReturnsConfig.get_config()
+
+        config.allow_returns = data.get('allow_returns', True)
+        config.require_receipt = data.get('require_receipt', True)
+        config.allow_store_credit = data.get('allow_store_credit', True)
+        config.return_window_days = int(data.get('return_window_days', 30))
+        config.auto_restore_stock = data.get('auto_restore_stock', True)
         config.save()
 
-        messages.success(request, _("Settings saved successfully"))
-
-        response = HttpResponse()
-        response['HX-Redirect'] = reverse('returns:settings')
-        return response
-
-    return {'config': config}
+        return JsonResponse({'success': True, 'message': 'Settings saved'})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 # =============================================================================

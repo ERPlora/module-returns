@@ -1,0 +1,41 @@
+{% load i18n %}
+
+<ion-footer id="dashboard-tabbar"{% if oob %} hx-swap-oob="outerHTML"{% endif %}>
+<ion-tab-bar slot="bottom" color="light">
+    <ion-tab-button
+        hx-get="{% url 'returns:dashboard' %}"
+        hx-target="#main-content-area"
+        hx-push-url="true"
+        {% if current_view == 'dashboard' %}class="tab-selected"{% endif %}>
+        <ion-icon name="home-outline"></ion-icon>
+        <ion-label>{% trans "Dashboard" %}</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button
+        hx-get="{% url 'returns:return_list' %}"
+        hx-target="#main-content-area"
+        hx-push-url="true"
+        {% if current_view == 'returns' %}class="tab-selected"{% endif %}>
+        <ion-icon name="return-down-back-outline"></ion-icon>
+        <ion-label>{% trans "Returns" %}</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button
+        hx-get="{% url 'returns:credit_list' %}"
+        hx-target="#main-content-area"
+        hx-push-url="true"
+        {% if current_view == 'credits' %}class="tab-selected"{% endif %}>
+        <ion-icon name="card-outline"></ion-icon>
+        <ion-label>{% trans "Credits" %}</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button
+        hx-get="{% url 'returns:settings' %}"
+        hx-target="#main-content-area"
+        hx-push-url="true"
+        {% if current_view == 'settings' %}class="tab-selected"{% endif %}>
+        <ion-icon name="settings-outline"></ion-icon>
+        <ion-label>{% trans "Settings" %}</ion-label>
+    </ion-tab-button>
+</ion-tab-bar>
+</ion-footer>

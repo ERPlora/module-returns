@@ -1,0 +1,262 @@
+{% load i18n %}
+
+{% if request.htmx %}
+<ion-footer id="dashboard-tabbar" hx-swap-oob="outerHTML" style="display: none;"></ion-footer>
+{% endif %}
+
+<ion-content class="ion-padding">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-6">
+        <ion-button
+            fill="clear"
+            hx-get="{% url 'returns:return_list' %}"
+            hx-target="#main-content-area"
+            hx-push-url="true">
+            <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+        </ion-button>
+        <div class="flex-grow">
+            <h1 class="text-2xl font-bold text-gray-900">{{ return_order.return_number }}</h1>
+            <p class="text-gray-500">{{ return_order.created_at|date:"d/m/Y H:i" }}</p>
+        </div>
+        <ion-badge
+            {% if return_order.status == 'pending' %}color="warning"{% endif %}
+            {% if return_order.status == 'approved' %}color="primary"{% endif %}
+            {% if return_order.status == 'processed' %}color="success"{% endif %}
+            {% if return_order.status == 'cancelled' %}color="medium"{% endif %}>
+            {{ return_order.get_status_display }}
+        </ion-badge>
+    </div>
+
+    <!-- Return Info -->
+    <ion-card class="mb-4">
+        <ion-card-content>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <div class="text-2xl font-bold text-gray-800">{{ return_order.subtotal }} &euro;</div>
+                    <div class="text-sm text-gray-500">{% trans "Subtotal" %}</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-gray-800">{{ return_order.tax_amount }} &euro;</div>
+                    <div class="text-sm text-gray-500">{% trans "Tax" %}</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-red-600">{{ return_order.total_amount }} &euro;</div>
+                    <div class="text-sm text-gray-500">{% trans "Total Refund" %}</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-gray-800">{{ return_order.get_refund_method_display }}</div>
+                    <div class="text-sm text-gray-500">{% trans "Method" %}</div>
+                </div>
+            </div>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Details -->
+    <ion-card class="mb-4">
+        <ion-card-header>
+            <ion-card-title>{% trans "Details" %}</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-list>
+                {% if return_order.sale_id %}
+                <ion-item>
+                    <ion-label>{% trans "Original Sale" %}</ion-label>
+                    <ion-note slot="end">{{ return_order.sale_id }}</ion-note>
+                </ion-item>
+                {% endif %}
+                {% if return_order.reason %}
+                <ion-item>
+                    <ion-label>{% trans "Reason" %}</ion-label>
+                    <ion-note slot="end">{{ return_order.reason.name }}</ion-note>
+                </ion-item>
+                {% endif %}
+                {% if return_order.notes %}
+                <ion-item>
+                    <ion-label class="ion-text-wrap">
+                        <h3>{% trans "Notes" %}</h3>
+                        <p>{{ return_order.notes }}</p>
+                    </ion-label>
+                </ion-item>
+                {% endif %}
+                {% if return_order.processed_by %}
+                <ion-item>
+                    <ion-label>{% trans "Processed By" %}</ion-label>
+                    <ion-note slot="end">{{ return_order.processed_by }}</ion-note>
+                </ion-item>
+                {% endif %}
+                {% if return_order.processed_at %}
+                <ion-item>
+                    <ion-label>{% trans "Processed At" %}</ion-label>
+                    <ion-note slot="end">{{ return_order.processed_at|date:"d/m/Y H:i" }}</ion-note>
+                </ion-item>
+                {% endif %}
+            </ion-list>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Items -->
+    <ion-card class="mb-4">
+        <ion-card-header>
+            <div class="flex justify-between items-center">
+                <ion-card-title>{% trans "Items" %}</ion-card-title>
+                {% if return_order.status == 'pending' %}
+                <ion-button
+                    size="small"
+                    id="add-item-trigger">
+                    <ion-icon slot="start" name="add"></ion-icon>
+                    {% trans "Add Item" %}
+                </ion-button>
+                {% endif %}
+            </div>
+        </ion-card-header>
+        <ion-card-content class="p-0">
+            {% if lines %}
+            <ion-list>
+                {% for line in lines %}
+                <ion-item>
+                    <ion-label>
+                        <h2>{{ line.product_name }}</h2>
+                        <p class="text-sm text-gray-500">
+                            {% if line.product_sku %}SKU: {{ line.product_sku }} | {% endif %}
+                            {% trans "Qty:" %} {{ line.quantity }} |
+                            {% trans "Condition:" %} {{ line.get_condition_display }}
+                        </p>
+                    </ion-label>
+                    <ion-note slot="end" class="font-medium">{{ line.line_total }} &euro;</ion-note>
+                    {% if return_order.status == 'pending' %}
+                    <form method="post" hx-post="{% url 'returns:line_remove' pk=return_order.pk line_pk=line.pk %}">
+                        {% csrf_token %}
+                        <ion-button slot="end" fill="clear" color="danger" type="submit">
+                            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                        </ion-button>
+                    </form>
+                    {% endif %}
+                </ion-item>
+                {% endfor %}
+            </ion-list>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <ion-icon name="cube-outline" class="text-4xl mb-2"></ion-icon>
+                <p>{% trans "No items added yet" %}</p>
+            </div>
+            {% endif %}
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Add Item Modal -->
+    {% if return_order.status == 'pending' %}
+    <ion-modal trigger="add-item-trigger">
+        <ion-header>
+            <ion-toolbar>
+                <ion-title>{% trans "Add Item" %}</ion-title>
+                <ion-buttons slot="end">
+                    <ion-button onclick="this.closest('ion-modal').dismiss()">
+                        <ion-icon slot="icon-only" name="close"></ion-icon>
+                    </ion-button>
+                </ion-buttons>
+            </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+            <form method="post" hx-post="{% url 'returns:line_add' pk=return_order.pk %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div>
+                        <ion-label>{% trans "Product Name" %} *</ion-label>
+                        <ion-input name="product_name" required></ion-input>
+                    </div>
+                    <div>
+                        <ion-label>{% trans "SKU" %}</ion-label>
+                        <ion-input name="product_sku"></ion-input>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <ion-label>{% trans "Quantity" %}</ion-label>
+                            <ion-input type="number" name="quantity" value="1" min="1"></ion-input>
+                        </div>
+                        <div>
+                            <ion-label>{% trans "Unit Price" %}</ion-label>
+                            <ion-input type="number" name="unit_price" value="0.00" step="0.01" min="0"></ion-input>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <ion-label>{% trans "Tax Rate %" %}</ion-label>
+                            <ion-input type="number" name="tax_rate" value="21" step="0.01"></ion-input>
+                        </div>
+                        <div>
+                            <ion-label>{% trans "Condition" %}</ion-label>
+                            <ion-select name="condition" value="good">
+                                <ion-select-option value="new">{% trans "New/Unused" %}</ion-select-option>
+                                <ion-select-option value="like_new">{% trans "Like New" %}</ion-select-option>
+                                <ion-select-option value="good">{% trans "Good" %}</ion-select-option>
+                                <ion-select-option value="fair">{% trans "Fair" %}</ion-select-option>
+                                <ion-select-option value="damaged">{% trans "Damaged" %}</ion-select-option>
+                            </ion-select>
+                        </div>
+                    </div>
+                    <ion-button type="submit" expand="block">
+                        <ion-icon slot="start" name="add"></ion-icon>
+                        {% trans "Add Item" %}
+                    </ion-button>
+                </div>
+            </form>
+        </ion-content>
+    </ion-modal>
+    {% endif %}
+
+    <!-- Actions -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>{% trans "Actions" %}</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <div class="flex flex-wrap gap-3">
+                {% if return_order.status == 'pending' %}
+                <ion-button
+                    hx-get="{% url 'returns:return_edit' pk=return_order.pk %}"
+                    hx-target="#main-content-area"
+                    hx-push-url="true">
+                    <ion-icon slot="start" name="create-outline"></ion-icon>
+                    {% trans "Edit" %}
+                </ion-button>
+                <form method="post" hx-post="{% url 'returns:return_approve' pk=return_order.pk %}">
+                    {% csrf_token %}
+                    <ion-button color="primary" type="submit">
+                        <ion-icon slot="start" name="checkmark-circle"></ion-icon>
+                        {% trans "Approve" %}
+                    </ion-button>
+                </form>
+                <form method="post" hx-post="{% url 'returns:return_process' pk=return_order.pk %}">
+                    {% csrf_token %}
+                    <ion-button color="success" type="submit">
+                        <ion-icon slot="start" name="checkmark-done"></ion-icon>
+                        {% trans "Process" %}
+                    </ion-button>
+                </form>
+                <form method="post" hx-post="{% url 'returns:return_cancel' pk=return_order.pk %}" hx-confirm="{% trans 'Are you sure you want to cancel this return?' %}">
+                    {% csrf_token %}
+                    <ion-button fill="outline" color="danger" type="submit">
+                        <ion-icon slot="start" name="close-circle"></ion-icon>
+                        {% trans "Cancel" %}
+                    </ion-button>
+                </form>
+                {% elif return_order.status == 'approved' %}
+                <form method="post" hx-post="{% url 'returns:return_process' pk=return_order.pk %}">
+                    {% csrf_token %}
+                    <ion-button color="success" type="submit">
+                        <ion-icon slot="start" name="checkmark-done"></ion-icon>
+                        {% trans "Process Refund" %}
+                    </ion-button>
+                </form>
+                <form method="post" hx-post="{% url 'returns:return_cancel' pk=return_order.pk %}" hx-confirm="{% trans 'Are you sure you want to cancel this return?' %}">
+                    {% csrf_token %}
+                    <ion-button fill="outline" color="danger" type="submit">
+                        <ion-icon slot="start" name="close-circle"></ion-icon>
+                        {% trans "Cancel" %}
+                    </ion-button>
+                </form>
+                {% endif %}
+            </div>
+        </ion-card-content>
+    </ion-card>
+</ion-content>

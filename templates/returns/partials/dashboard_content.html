@@ -1,0 +1,87 @@
+{% load i18n ui %}
+
+{% if request.htmx %}
+{% include "returns/partials/tabbar.html" with current_view='dashboard' oob=True %}
+{% endif %}
+
+{% ui_page_header title=_("Returns & Refunds") subtitle=_("Manage product returns and store credits") %}
+
+<div class="ion-padding">
+
+    <!-- Stats Cards -->
+    <ion-row class="mb-md">
+        <ion-col size="6" size-md="3">
+            {% ui_stat_card value=stats.total label=_("Total Returns") icon="return-down-back-outline" color="primary" %}
+        </ion-col>
+        <ion-col size="6" size-md="3">
+            {% ui_stat_card value=stats.pending label=_("Pending") icon="time-outline" color="warning" %}
+        </ion-col>
+        <ion-col size="6" size-md="3">
+            {% ui_stat_card value=stats.processed label=_("Processed") icon="checkmark-circle-outline" color="success" %}
+        </ion-col>
+        <ion-col size="6" size-md="3">
+            {% ui_stat_card value=stats.total_refunded_formatted label=_("Refunded") icon="cash-outline" color="danger" %}
+        </ion-col>
+    </ion-row>
+
+    <!-- Quick Actions -->
+    {% ui_card title=_("Quick Actions") css_class="mb-md" %}
+        <div class="d-flex flex-wrap gap-sm">
+            <ion-button
+                hx-get="{% url 'returns:return_create' %}"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                <ion-icon slot="start" name="add"></ion-icon>
+                {% trans "New Return" %}
+            </ion-button>
+            <ion-button
+                fill="outline"
+                hx-get="{% url 'returns:credit_create' %}"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                <ion-icon slot="start" name="card"></ion-icon>
+                {% trans "Issue Credit" %}
+            </ion-button>
+            <ion-button
+                fill="outline"
+                hx-get="{% url 'returns:reason_list' %}"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                <ion-icon slot="start" name="list"></ion-icon>
+                {% trans "Manage Reasons" %}
+            </ion-button>
+        </div>
+    {% endui_card %}
+
+    <!-- Recent Returns -->
+    {% ui_card title=_("Recent Returns") %}
+        {% if recent_returns %}
+        <ion-list lines="full">
+            {% for return in recent_returns %}
+            <ion-item button
+                hx-get="{% url 'returns:return_detail' pk=return.pk %}"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                <ion-label>
+                    <h3 class="fw-medium">{{ return.return_number }}</h3>
+                    <p class="fs-sm text-secondary">
+                        {{ return.created_at|date:"d/m/Y H:i" }}
+                        {% if return.reason %} - {{ return.reason.name }}{% endif %}
+                    </p>
+                </ion-label>
+                <ion-badge slot="end"
+                    {% if return.status == 'pending' %}color="warning"{% endif %}
+                    {% if return.status == 'approved' %}color="primary"{% endif %}
+                    {% if return.status == 'processed' %}color="success"{% endif %}
+                    {% if return.status == 'cancelled' %}color="medium"{% endif %}>
+                    {{ return.get_status_display }}
+                </ion-badge>
+                <ion-note slot="end" class="ml-xs">{{ return.total_amount_formatted }}</ion-note>
+            </ion-item>
+            {% endfor %}
+        </ion-list>
+        {% else %}
+        {% ui_empty_state title=_("No returns yet") icon="return-down-back-outline" %}
+        {% endif %}
+    {% endui_card %}
+</div>

@@ -1,0 +1,131 @@
+{% load i18n %}
+
+{% if request.htmx %}
+<ion-footer id="dashboard-tabbar" hx-swap-oob="outerHTML" style="display: none;"></ion-footer>
+{% endif %}
+
+<ion-content class="ion-padding">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-6">
+        <ion-button
+            fill="clear"
+            hx-get="{% url 'returns:reason_list' %}"
+            hx-target="#main-content-area"
+            hx-push-url="true">
+            <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+        </ion-button>
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% if is_edit %}{% trans "Edit Reason" %}{% else %}{% trans "New Reason" %}{% endif %}
+        </h1>
+    </div>
+
+    <ion-card>
+        <ion-card-content>
+            <form method="post"
+                hx-post="{% if is_edit %}{% url 'returns:reason_edit' pk=reason.pk %}{% else %}{% url 'returns:reason_create' %}{% endif %}"
+                hx-target="#main-content-area">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Name -->
+                    <div class="md:col-span-2">
+                        <ion-label class="text-sm text-gray-600">{% trans "Name" %} *</ion-label>
+                        <ion-input
+                            name="name"
+                            value="{{ reason.name|default:form_data.name }}"
+                            placeholder="{% trans 'e.g., Defective, Wrong Item, Changed Mind' %}"
+                            required
+                            class="mt-1">
+                        </ion-input>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="md:col-span-2">
+                        <ion-label class="text-sm text-gray-600">{% trans "Description" %}</ion-label>
+                        <ion-textarea
+                            name="description"
+                            placeholder="{% trans 'Detailed description of this return reason' %}"
+                            rows="2"
+                            class="mt-1">{{ reason.description|default:form_data.description }}</ion-textarea>
+                    </div>
+
+                    <!-- Order -->
+                    <div>
+                        <ion-label class="text-sm text-gray-600">{% trans "Display Order" %}</ion-label>
+                        <ion-input
+                            type="number"
+                            name="order"
+                            value="{{ reason.order|default:form_data.order|default:0 }}"
+                            min="0"
+                            class="mt-1">
+                        </ion-input>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="md:col-span-2">
+                        <ion-label class="text-sm text-gray-600 mb-2 block">{% trans "Options" %}</ion-label>
+                        <ion-list>
+                            <ion-item>
+                                <ion-checkbox name="restocks_inventory" {% if reason.restocks_inventory or not is_edit %}checked{% endif %}></ion-checkbox>
+                                <ion-label class="ml-3">
+                                    <h3>{% trans "Restocks Inventory" %}</h3>
+                                    <p>{% trans "Returned items are added back to stock" %}</p>
+                                </ion-label>
+                            </ion-item>
+
+                            <ion-item>
+                                <ion-checkbox name="requires_note" {% if reason.requires_note %}checked{% endif %}></ion-checkbox>
+                                <ion-label class="ml-3">
+                                    <h3>{% trans "Requires Note" %}</h3>
+                                    <p>{% trans "A note must be provided when using this reason" %}</p>
+                                </ion-label>
+                            </ion-item>
+
+                            {% if is_edit %}
+                            <ion-item>
+                                <ion-checkbox name="is_active" {% if reason.is_active %}checked{% endif %}></ion-checkbox>
+                                <ion-label class="ml-3">
+                                    <h3>{% trans "Active" %}</h3>
+                                    <p>{% trans "Inactive reasons are hidden from selection" %}</p>
+                                </ion-label>
+                            </ion-item>
+                            {% endif %}
+                        </ion-list>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-between gap-3 mt-6 pt-4 border-t">
+                    {% if is_edit %}
+                    <form method="post"
+                        hx-post="{% url 'returns:reason_delete' pk=reason.pk %}"
+                        hx-confirm="{% trans 'Are you sure you want to delete this reason?' %}">
+                        {% csrf_token %}
+                        <ion-button fill="outline" color="danger" type="submit">
+                            <ion-icon slot="start" name="trash-outline"></ion-icon>
+                            {% trans "Delete" %}
+                        </ion-button>
+                    </form>
+                    {% else %}
+                    <div></div>
+                    {% endif %}
+
+                    <div class="flex gap-3">
+                        <ion-button
+                            fill="outline"
+                            color="medium"
+                            hx-get="{% url 'returns:reason_list' %}"
+                            hx-target="#main-content-area"
+                            hx-push-url="true">
+                            {% trans "Cancel" %}
+                        </ion-button>
+                        <ion-button type="submit">
+                            <ion-icon slot="start" name="checkmark"></ion-icon>
+                            {% if is_edit %}{% trans "Save Changes" %}{% else %}{% trans "Create Reason" %}{% endif %}
+                        </ion-button>
+                    </div>
+                </div>
+            </form>
+        </ion-card-content>
+    </ion-card>
+</ion-content>

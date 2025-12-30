@@ -1,34 +1,32 @@
 {
-  "module_id": "tables",
-  "name": "Tables & Floor Management",
-  "name_es": "Gestión de Mesas y Planta",
+  "module_id": "returns",
+  "name": "Returns & Refunds",
+  "name_es": "Devoluciones y Reembolsos",
   "version": "1.0.0",
-  "description": "Table and floor management for hospitality businesses. Manage areas, tables, and link sales to specific tables.",
-  "description_es": "Gestión de mesas y planta para negocios de hostelería. Administra áreas, mesas y vincula ventas a mesas específicas.",
+  "description": "Handle product returns, refunds, and store credits for retail businesses.",
+  "description_es": "Gestiona devoluciones de productos, reembolsos y créditos de tienda para negocios minoristas.",
   "author": "ERPlora",
   "author_email": "support@erplora.com",
   "license": "MIT",
-  "category": "hospitality",
+  "category": "operations",
   "industries": [
-    "restaurant",
-    "bar",
-    "cafe",
-    "fast_food",
-    "hotel",
-    "catering",
-    "entertainment"
+    "retail",
+    "ecommerce",
+    "wholesale",
+    "fashion",
+    "electronics"
   ],
   "tags": [
-    "tables",
-    "floor",
-    "areas",
-    "seating",
-    "hospitality"
+    "returns",
+    "refunds",
+    "store-credit",
+    "rma",
+    "exchanges"
   ],
-  "icon": "grid-outline",
-  "homepage": "https://github.com/ERPlora/module-tables",
-  "repository_url": "https://github.com/ERPlora/module-tables",
-  "documentation": "https://docs.erplora.com/modules/tables",
+  "icon": "arrow-undo-outline",
+  "homepage": "https://github.com/ERPlora/module-returns",
+  "repository_url": "https://github.com/ERPlora/module-returns",
+  "documentation": "https://docs.erplora.com/modules/returns",
   "dependencies": {
     "python": [],
     "modules": [
@@ -49,106 +47,101 @@
     "webhooks": false,
     "background_tasks": false,
     "supports_images": false,
-    "supports_export": false,
+    "supports_export": true,
     "supports_import": false
   },
   "permissions": [
-    "tables.view_area",
-    "tables.add_area",
-    "tables.change_area",
-    "tables.delete_area",
-    "tables.view_table",
-    "tables.add_table",
-    "tables.change_table",
-    "tables.delete_table",
-    "tables.view_tablesconfig",
-    "tables.change_tablesconfig"
+    "returns.view_return",
+    "returns.add_return",
+    "returns.change_return",
+    "returns.delete_return",
+    "returns.view_returnreason",
+    "returns.add_returnreason",
+    "returns.change_returnreason",
+    "returns.delete_returnreason",
+    "returns.view_storecredit",
+    "returns.add_storecredit",
+    "returns.change_storecredit"
   ],
   "menu": {
-    "label": "Floor",
-    "label_es": "Planta",
-    "icon": "grid-outline",
-    "url": "/modules/tables/",
-    "order": 5
+    "label": "Returns",
+    "label_es": "Devoluciones",
+    "icon": "arrow-undo-outline",
+    "url": "/modules/returns/",
+    "order": 25
   },
   "settings": {
-    "default_table_capacity": {
-      "type": "number",
-      "default": 4,
-      "label": "Default Table Capacity",
-      "label_es": "Capacidad de Mesa por Defecto",
-      "description": "Default number of seats when creating a new table",
-      "description_es": "Número de asientos por defecto al crear una mesa"
-    },
-    "show_table_timer": {
+    "allow_no_receipt_returns": {
       "type": "boolean",
-      "default": true,
-      "label": "Show Table Timer",
-      "label_es": "Mostrar Temporizador de Mesa",
-      "description": "Show elapsed time since table was occupied",
-      "description_es": "Mostrar tiempo transcurrido desde que la mesa fue ocupada"
+      "default": false,
+      "label": "Allow Returns Without Receipt",
+      "label_es": "Permitir Devoluciones Sin Recibo",
+      "description": "Allow customers to return items without original receipt",
+      "description_es": "Permitir a los clientes devolver artículos sin el recibo original"
+    },
+    "default_return_window_days": {
+      "type": "number",
+      "default": 30,
+      "label": "Default Return Window (days)",
+      "label_es": "Período de Devolución por Defecto (días)",
+      "description": "Number of days after purchase within which returns are accepted",
+      "description_es": "Número de días después de la compra en los que se aceptan devoluciones"
+    },
+    "store_credit_expiry_days": {
+      "type": "number",
+      "default": 365,
+      "label": "Store Credit Expiry (days)",
+      "label_es": "Vencimiento de Crédito de Tienda (días)",
+      "description": "Number of days before store credits expire (0 = never)",
+      "description_es": "Número de días antes de que los créditos de tienda expiren (0 = nunca)"
     }
   },
   "api_endpoints": [
     {
       "path": "/",
       "method": "GET",
-      "description": "Floor view with tables"
+      "description": "Returns list view"
     },
     {
-      "path": "/areas/",
+      "path": "/create/",
+      "method": "GET,POST",
+      "description": "Create new return"
+    },
+    {
+      "path": "/<int:pk>/",
       "method": "GET",
-      "description": "List areas"
+      "description": "Return detail"
     },
     {
-      "path": "/areas/create/",
-      "method": "POST",
-      "description": "Create area"
-    },
-    {
-      "path": "/tables/",
+      "path": "/reasons/",
       "method": "GET",
-      "description": "List tables"
+      "description": "List return reasons"
     },
     {
-      "path": "/tables/create/",
-      "method": "POST",
-      "description": "Create table"
-    },
-    {
-      "path": "/tables/<int:pk>/open/",
-      "method": "POST",
-      "description": "Open table (start sale)"
-    },
-    {
-      "path": "/tables/<int:pk>/close/",
-      "method": "POST",
-      "description": "Close table"
-    },
-    {
-      "path": "/api/status/",
+      "path": "/credits/",
       "method": "GET",
-      "description": "Get all tables status"
+      "description": "List store credits"
     }
   ],
   "database": {
     "migrations": true,
     "models": [
-      "TablesConfig",
-      "Area",
-      "Table"
+      "ReturnsConfig",
+      "ReturnReason",
+      "Return",
+      "ReturnLine",
+      "StoreCredit"
     ]
   },
   "changelog": {
     "1.0.0": {
-      "date": "2025-12-27",
+      "date": "2025-12-28",
       "changes": [
         "Initial release",
-        "Area management (zones/sections)",
-        "Table management with status tracking",
-        "Floor view with visual table grid",
-        "Integration with sales module",
-        "Table capacity and status indicators",
+        "Return processing with multiple refund methods",
+        "Configurable return reasons",
+        "Store credit management",
+        "Return line items tracking",
         "Multi-language support (English/Spanish)"
       ]
     }

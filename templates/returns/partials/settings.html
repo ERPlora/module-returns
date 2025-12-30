@@ -1,0 +1,162 @@
+{% load static i18n ui component_tags %}
+
+{% component "settings_page"
+    title=_("Returns Settings")
+    subtitle=_("Configure returns module behavior")
+    tabbar_template="returns/partials/tabbar.html"
+    tabbar_view="settings"
+    alpine_app="settingsApp" %}
+
+    {% fill "settings" %}
+        {% component "setting_section" title=_("Return Policies") %}
+            {% component "setting_toggle"
+                name="allow_returns"
+                title=_("Allow Returns")
+                description=_("Enable product returns processing")
+                checked=config.allow_returns %}{% endcomponent %}
+
+            {% component "setting_toggle"
+                name="require_receipt"
+                title=_("Require Receipt")
+                description=_("Require original receipt for returns")
+                checked=config.require_receipt
+                color="warning" %}{% endcomponent %}
+
+            {% component "setting_toggle"
+                name="allow_store_credit"
+                title=_("Allow Store Credit")
+                description=_("Allow refunds as store credit instead of cash")
+                checked=config.allow_store_credit %}{% endcomponent %}
+        {% endcomponent %}
+
+        {% component "setting_section" title=_("Return Window") %}
+            {% component "setting_input"
+                name="return_window_days"
+                title=_("Return Window (Days)")
+                description=_("Number of days after sale to allow returns (0 = unlimited)")
+                value=config.return_window_days
+                type="number"
+                min=0
+                max=365 %}{% endcomponent %}
+        {% endcomponent %}
+
+        {% component "setting_section" title=_("Inventory") %}
+            {% component "setting_toggle"
+                name="auto_restore_stock"
+                title=_("Auto Restore Stock")
+                description=_("Automatically restore inventory when return is processed")
+                checked=config.auto_restore_stock %}{% endcomponent %}
+        {% endcomponent %}
+    {% endfill %}
+
+    {% fill "actions" %}
+        <div class="mt-lg pt-md" style="border-top: 1px solid var(--border-color);">
+            <ion-button
+                color="medium"
+                fill="outline"
+                expand="block"
+                @click="resetToDefaults()">
+                <ion-icon slot="start" name="refresh-outline"></ion-icon>
+                {% trans "Reset to Defaults" %}
+            </ion-button>
+        </div>
+    {% endfill %}
+{% endcomponent %}
+
+<script>
+function settingsApp() {
+    return {
+        settings: {
+            allow_returns: {{ config.allow_returns|yesno:"true,false" }},
+            require_receipt: {{ config.require_receipt|yesno:"true,false" }},
+            allow_store_credit: {{ config.allow_store_credit|yesno:"true,false" }},
+            return_window_days: {{ config.return_window_days }},
+            auto_restore_stock: {{ config.auto_restore_stock|yesno:"true,false" }}
+        },
+
+        init() {
+            this.$nextTick(() => {
+                this.setupToggle('toggle_allow_returns', 'allow_returns');
+                this.setupToggle('toggle_require_receipt', 'require_receipt');
+                this.setupToggle('toggle_allow_store_credit', 'allow_store_credit');
+                this.setupInput('input_return_window_days', 'return_window_days');
+                this.setupToggle('toggle_auto_restore_stock', 'auto_restore_stock');
+            });
+        },
+
+        setupToggle(refName, settingKey) {
+            const toggle = this.$refs[refName];
+            if (toggle) {
+                toggle.addEventListener('ionChange', (e) => {
+                    this.updateSetting(settingKey, e.detail.checked);
+                });
+            }
+        },
+
+        setupInput(refName, settingKey) {
+            const input = this.$refs[refName];
+            if (input) {
+                input.addEventListener('ionChange', (e) => {
+                    const value = parseInt(e.detail.value) || 30;
+                    this.updateSetting(settingKey, value);
+                });
+            }
+        },
+
+        async updateSetting(key, value) {
+            this.settings[key] = value;
+
+            try {
+                const response = await fetch('{% url "returns:settings_save" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': Alpine.store('ui').getCsrfToken()
+                    },
+                    body: JSON.stringify(this.settings)
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    Alpine.store('ui').success('{% trans "Settings saved" %}');
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                Alpine.store('ui').error('{% trans "Error saving settings" %}');
+            }
+        },
+
+        async resetToDefaults() {
+            this.settings = {
+                allow_returns: true,
+                require_receipt: true,
+                allow_store_credit: true,
+                return_window_days: 30,
+                auto_restore_stock: true
+            };
+
+            try {
+                const response = await fetch('{% url "returns:settings_save" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': Alpine.store('ui').getCsrfToken()
+                    },
+                    body: JSON.stringify(this.settings)
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    Alpine.store('ui').toast('{% trans "Settings reset to defaults" %}', 'warning');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                Alpine.store('ui').error('{% trans "Error resetting settings" %}');
+            }
+        }
+    }
+}
+</script>

@@ -1,0 +1,106 @@
+{% load i18n %}
+
+{% if request.htmx %}
+<ion-footer id="dashboard-tabbar" hx-swap-oob="outerHTML" style="display: none;"></ion-footer>
+{% endif %}
+
+<ion-content class="ion-padding">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-6">
+        <ion-button
+            fill="clear"
+            hx-get="{% url 'returns:return_list' %}"
+            hx-target="#main-content-area"
+            hx-push-url="true">
+            <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+        </ion-button>
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% if is_edit %}{% trans "Edit Return" %}{% else %}{% trans "New Return" %}{% endif %}
+        </h1>
+    </div>
+
+    <ion-card>
+        <ion-card-content>
+            <form method="post"
+                hx-post="{% if is_edit %}{% url 'returns:return_edit' pk=return_order.pk %}{% else %}{% url 'returns:return_create' %}{% endif %}"
+                hx-target="#main-content-area">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Sale ID -->
+                    <div>
+                        <ion-label class="text-sm text-gray-600">
+                            {% trans "Sale ID / Receipt" %}
+                            {% if config.require_receipt %}*{% endif %}
+                        </ion-label>
+                        <ion-input
+                            name="sale_id"
+                            value="{{ return_order.sale_id|default:form_data.sale_id }}"
+                            placeholder="{% trans 'Enter sale ID or receipt number' %}"
+                            {% if config.require_receipt %}required{% endif %}
+                            class="mt-1">
+                        </ion-input>
+                    </div>
+
+                    <!-- Reason -->
+                    <div>
+                        <ion-label class="text-sm text-gray-600">{% trans "Return Reason" %}</ion-label>
+                        <ion-select
+                            name="reason"
+                            value="{{ return_order.reason.pk|default:form_data.reason }}"
+                            interface="popover"
+                            placeholder="{% trans 'Select reason' %}"
+                            class="mt-1">
+                            <ion-select-option value="">{% trans "No Reason" %}</ion-select-option>
+                            {% for reason in reasons %}
+                            <ion-select-option value="{{ reason.pk }}">{{ reason.name }}</ion-select-option>
+                            {% endfor %}
+                        </ion-select>
+                    </div>
+
+                    <!-- Refund Method -->
+                    <div>
+                        <ion-label class="text-sm text-gray-600">{% trans "Refund Method" %}</ion-label>
+                        <ion-select
+                            name="refund_method"
+                            value="{{ return_order.refund_method|default:form_data.refund_method|default:'cash' }}"
+                            interface="popover"
+                            class="mt-1">
+                            <ion-select-option value="cash">{% trans "Cash" %}</ion-select-option>
+                            {% if config.allow_store_credit %}
+                            <ion-select-option value="store_credit">{% trans "Store Credit" %}</ion-select-option>
+                            {% endif %}
+                            <ion-select-option value="original_payment">{% trans "Original Payment Method" %}</ion-select-option>
+                        </ion-select>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="md:col-span-2">
+                        <ion-label class="text-sm text-gray-600">{% trans "Notes" %}</ion-label>
+                        <ion-textarea
+                            name="notes"
+                            placeholder="{% trans 'Additional notes about this return' %}"
+                            rows="3"
+                            class="mt-1">{{ return_order.notes|default:form_data.notes }}</ion-textarea>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                    <ion-button
+                        fill="outline"
+                        color="medium"
+                        hx-get="{% url 'returns:return_list' %}"
+                        hx-target="#main-content-area"
+                        hx-push-url="true">
+                        {% trans "Cancel" %}
+                    </ion-button>
+                    <ion-button type="submit">
+                        <ion-icon slot="start" name="checkmark"></ion-icon>
+                        {% if is_edit %}{% trans "Save Changes" %}{% else %}{% trans "Create Return" %}{% endif %}
+                    </ion-button>
+                </div>
+            </form>
+        </ion-card-content>
+    </ion-card>
+</ion-content>
