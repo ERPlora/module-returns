@@ -1,19 +1,7 @@
-{% extends "ui/content_base.html" %}
+{% extends "ui/app_base.html" %}
 {% load i18n %}
 
 {% block page_title %}{% trans "Returns" %}{% endblock %}
-
-{% block content %}
-{% with current_section="returns" section_title=_("Returns") %}
-{{ block.super }}
-{% endwith %}
-{% endblock %}
-
-{% block module_tabbar %}
-
-{% include "returns/partials/tabbar.html" with current_view='returns' %}
-
-{% endblock %}
 
 {% block page_content %}
 {% include "returns/partials/return_list.html" %}

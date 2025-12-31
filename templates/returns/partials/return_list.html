@@ -1,7 +1,7 @@
-{% load i18n %}
+{% load i18n component_tags %}
 
 {% if request.htmx %}
-{% include "returns/partials/tabbar.html" with current_view='returns' oob=True %}
+{% component "tabbar" module_id="returns" current_view="returns" oob=True %}{% endcomponent %}
 {% endif %}
 
 <ion-content class="ion-padding">

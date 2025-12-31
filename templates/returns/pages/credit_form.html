@@ -1,20 +1,8 @@
-{% extends "ui/content_base.html" %}
+{% extends "ui/app_base.html" %}
 {% load static %}
 {% load i18n %}
 
 {% block page_title %}{% trans "Issue Store Credit" %}{% endblock %}
-
-{% block content %}
-{% with current_section="returns" section_title=_("Returns") %}
-{{ block.super }}
-{% endwith %}
-{% endblock %}
-
-{% block module_tabbar %}
-
-{% include "returns/partials/tabbar.html" with current_view='credits' %}
-
-{% endblock %}
 
 {% block page_content %}
 {% include "returns/partials/credit_form.html" %}

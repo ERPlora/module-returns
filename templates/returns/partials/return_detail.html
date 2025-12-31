@@ -1,7 +1,7 @@
-{% load i18n %}
+{% load i18n component_tags %}
 
 {% if request.htmx %}
-<ion-footer id="dashboard-tabbar" hx-swap-oob="outerHTML" style="display: none;"></ion-footer>
+{% component "tabbar" module_id="returns" current_view="returns" oob=True hidden=True %}{% endcomponent %}
 {% endif %}
 
 <ion-content class="ion-padding">

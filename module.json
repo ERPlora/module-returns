@@ -70,6 +70,32 @@
     "url": "/modules/returns/",
     "order": 25
   },
+  "tabs": [
+    {
+      "id": "dashboard",
+      "url": "returns:dashboard",
+      "icon": "home-outline",
+      "label": "Dashboard"
+    },
+    {
+      "id": "returns",
+      "url": "returns:return_list",
+      "icon": "return-down-back-outline",
+      "label": "Returns"
+    },
+    {
+      "id": "credits",
+      "url": "returns:credit_list",
+      "icon": "card-outline",
+      "label": "Credits"
+    },
+    {
+      "id": "settings",
+      "url": "returns:settings",
+      "icon": "settings-outline",
+      "label": "Settings"
+    }
+  ],
   "settings": {
     "allow_no_receipt_returns": {
       "type": "boolean",

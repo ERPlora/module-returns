@@ -1,22 +1,10 @@
-{% extends "ui/content_base.html" %}
+{% extends "ui/app_base.html" %}
 {% load static %}
 {% load i18n %}
 
 {% block page_title %}
     {% if is_edit %}{% trans "Edit Return" %}
     {% else %}{% trans "New Return" %}{% endif %}
-{% endblock %}
-
-{% block content %}
-{% with current_section="returns" section_title=_("Returns") %}
-{{ block.super }}
-{% endwith %}
-{% endblock %}
-
-{% block module_tabbar %}
-
-{% include "returns/partials/tabbar.html" with current_view='returns' %}
-
 {% endblock %}
 
 {% block page_content %}
