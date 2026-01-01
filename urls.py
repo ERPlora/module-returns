@@ -39,4 +39,7 @@ urlpatterns = [
     # Settings
     path('settings/', views.settings_view, name='settings'),
     path('settings/save/', views.settings_save, name='settings_save'),
+    path('settings/toggle/', views.settings_toggle, name='settings_toggle'),
+    path('settings/input/', views.settings_input, name='settings_input'),
+    path('settings/reset/', views.settings_reset, name='settings_reset'),
 ]

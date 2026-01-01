@@ -1,23 +1,13 @@
 {% load i18n component_tags %}
 
-{% if request.htmx %}
-{% component "tabbar" module_id="returns" current_view="settings" oob=True %}{% endcomponent %}
-{% endif %}
+{% component "page"
+    title=_("Return Reasons")
+    subtitle=_("Predefined reasons for returns")
+    module_id="returns"
+    tabbar_view="settings"
+    back_url="returns:settings" %}
 
-<ion-content class="ion-padding">
-    <!-- Header -->
-    <div class="flex items-center gap-4 mb-6">
-        <ion-button
-            fill="clear"
-            hx-get="{% url 'returns:settings' %}"
-            hx-target="#main-content-area"
-            hx-push-url="true">
-            <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
-        </ion-button>
-        <div class="flex-grow">
-            <h1 class="text-2xl font-bold text-gray-900">{% trans "Return Reasons" %}</h1>
-            <p class="text-gray-500">{% trans "Predefined reasons for returns" %}</p>
-        </div>
+    {% fill "header_actions" %}
         <ion-button
             hx-get="{% url 'returns:reason_create' %}"
             hx-target="#main-content-area"
@@ -25,56 +15,58 @@
             <ion-icon slot="start" name="add"></ion-icon>
             {% trans "Add Reason" %}
         </ion-button>
-    </div>
+    {% endfill %}
 
-    <!-- Reasons List -->
-    <ion-card>
-        <ion-card-content class="p-0">
-            {% if reasons %}
-            <ion-list>
-                {% for reason in reasons %}
-                <ion-item>
-                    <ion-label>
-                        <h2 class="font-medium">{{ reason.name }}</h2>
-                        <p class="text-sm text-gray-500">
-                            {% if reason.description %}{{ reason.description }}{% endif %}
-                        </p>
-                        <p class="text-xs text-gray-400 mt-1">
-                            {% if reason.restocks_inventory %}
-                            <ion-badge color="success" class="mr-1">{% trans "Restocks" %}</ion-badge>
-                            {% endif %}
-                            {% if reason.requires_note %}
-                            <ion-badge color="warning" class="mr-1">{% trans "Note Required" %}</ion-badge>
-                            {% endif %}
-                        </p>
-                    </ion-label>
-                    <ion-badge slot="end" color="{% if reason.is_active %}success{% else %}medium{% endif %}">
-                        {% if reason.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
-                    </ion-badge>
+    {% fill "content" %}
+        <!-- Reasons List -->
+        <ion-card>
+            <ion-card-content class="p-0">
+                {% if reasons %}
+                <ion-list>
+                    {% for reason in reasons %}
+                    <ion-item>
+                        <ion-label>
+                            <h2 class="font-medium">{{ reason.name }}</h2>
+                            <p class="text-sm text-gray-500">
+                                {% if reason.description %}{{ reason.description }}{% endif %}
+                            </p>
+                            <p class="text-xs text-gray-400 mt-1">
+                                {% if reason.restocks_inventory %}
+                                <ion-badge color="success" class="mr-1">{% trans "Restocks" %}</ion-badge>
+                                {% endif %}
+                                {% if reason.requires_note %}
+                                <ion-badge color="warning" class="mr-1">{% trans "Note Required" %}</ion-badge>
+                                {% endif %}
+                            </p>
+                        </ion-label>
+                        <ion-badge slot="end" color="{% if reason.is_active %}success{% else %}medium{% endif %}">
+                            {% if reason.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
+                        </ion-badge>
+                        <ion-button
+                            slot="end"
+                            fill="clear"
+                            hx-get="{% url 'returns:reason_edit' pk=reason.pk %}"
+                            hx-target="#main-content-area"
+                            hx-push-url="true">
+                            <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                        </ion-button>
+                    </ion-item>
+                    {% endfor %}
+                </ion-list>
+                {% else %}
+                <div class="text-center py-12 text-gray-500">
+                    <ion-icon name="list-outline" class="text-5xl mb-4"></ion-icon>
+                    <p class="mb-4">{% trans "No return reasons defined" %}</p>
                     <ion-button
-                        slot="end"
-                        fill="clear"
-                        hx-get="{% url 'returns:reason_edit' pk=reason.pk %}"
+                        hx-get="{% url 'returns:reason_create' %}"
                         hx-target="#main-content-area"
                         hx-push-url="true">
-                        <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                        <ion-icon slot="start" name="add"></ion-icon>
+                        {% trans "Add First Reason" %}
                     </ion-button>
-                </ion-item>
-                {% endfor %}
-            </ion-list>
-            {% else %}
-            <div class="text-center py-12 text-gray-500">
-                <ion-icon name="list-outline" class="text-5xl mb-4"></ion-icon>
-                <p class="mb-4">{% trans "No return reasons defined" %}</p>
-                <ion-button
-                    hx-get="{% url 'returns:reason_create' %}"
-                    hx-target="#main-content-area"
-                    hx-push-url="true">
-                    <ion-icon slot="start" name="add"></ion-icon>
-                    {% trans "Add First Reason" %}
-                </ion-button>
-            </div>
-            {% endif %}
-        </ion-card-content>
-    </ion-card>
-</ion-content>
+                </div>
+                {% endif %}
+            </ion-card-content>
+        </ion-card>
+    {% endfill %}
+{% endcomponent %}

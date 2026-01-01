@@ -560,7 +560,11 @@ def credit_lookup(request):
 def settings_view(request):
     """Returns module settings."""
     config = ReturnsConfig.get_config()
-    return {'config': config}
+    return {
+        'config': config,
+        'returns_toggle_url': reverse('returns:settings_toggle'),
+        'returns_input_url': reverse('returns:settings_input'),
+    }
 
 
 @require_POST
@@ -582,6 +586,73 @@ def settings_save(request):
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_http_methods(["POST"])
+def settings_toggle(request):
+    """Toggle a single setting via HTMX."""
+    # Support both 'name'/'value' (new components) and 'setting_name'/'setting_value' (legacy)
+    name = request.POST.get('name') or request.POST.get('setting_name')
+    value = request.POST.get('value', request.POST.get('setting_value', 'false'))
+    setting_value = value == 'true' or value is True
+
+    config = ReturnsConfig.get_config()
+
+    boolean_settings = ['allow_returns', 'require_receipt', 'allow_store_credit',
+                       'auto_restore_stock']
+
+    if name in boolean_settings:
+        setattr(config, name, setting_value)
+        config.save()
+
+    response = HttpResponse(status=204)
+    response['HX-Trigger'] = json.dumps({
+        'showToast': {'message': str(_('Setting updated')), 'color': 'success'}
+    })
+    return response
+
+
+@require_http_methods(["POST"])
+def settings_input(request):
+    """Update a numeric setting via HTMX."""
+    # Support both 'name'/'value' (new components) and 'setting_name'/'setting_value' (legacy)
+    name = request.POST.get('name') or request.POST.get('setting_name')
+    value = request.POST.get('value') or request.POST.get('setting_value')
+
+    config = ReturnsConfig.get_config()
+
+    if name == 'return_window_days':
+        try:
+            config.return_window_days = int(value)
+            config.save()
+        except (ValueError, TypeError):
+            pass
+
+    response = HttpResponse(status=204)
+    response['HX-Trigger'] = json.dumps({
+        'showToast': {'message': str(_('Setting updated')), 'color': 'success'}
+    })
+    return response
+
+
+@require_http_methods(["POST"])
+def settings_reset(request):
+    """Reset all settings to defaults via HTMX."""
+    config = ReturnsConfig.get_config()
+
+    config.allow_returns = True
+    config.require_receipt = True
+    config.allow_store_credit = True
+    config.return_window_days = 30
+    config.auto_restore_stock = True
+    config.save()
+
+    response = HttpResponse(status=204)
+    response['HX-Trigger'] = json.dumps({
+        'showToast': {'message': str(_('Settings reset to defaults')), 'color': 'warning'},
+        'refreshPage': True
+    })
+    return response
 
 
 # =============================================================================

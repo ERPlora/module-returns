@@ -1,107 +1,99 @@
 {% load i18n component_tags %}
 
-{% if request.htmx %}
-{% component "tabbar" module_id="returns" current_view="credits" oob=True hidden=True %}{% endcomponent %}
-{% endif %}
+{% component "page"
+    title=_("Issue Store Credit")
+    module_id="returns"
+    tabbar_view="credits"
+    hide_tabbar=True
+    back_url="returns:credit_list" %}
 
-<ion-content class="ion-padding">
-    <!-- Header -->
-    <div class="flex items-center gap-4 mb-6">
-        <ion-button
-            fill="clear"
-            hx-get="{% url 'returns:credit_list' %}"
-            hx-target="#main-content-area"
-            hx-push-url="true">
-            <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
-        </ion-button>
-        <h1 class="text-2xl font-bold text-gray-900">{% trans "Issue Store Credit" %}</h1>
-    </div>
+    {% fill "content" %}
+        <ion-card>
+            <ion-card-content>
+                <form method="post"
+                    hx-post="{% url 'returns:credit_create' %}"
+                    hx-target="#main-content-area">
+                    {% csrf_token %}
 
-    <ion-card>
-        <ion-card-content>
-            <form method="post"
-                hx-post="{% url 'returns:credit_create' %}"
-                hx-target="#main-content-area">
-                {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Amount -->
+                        <div>
+                            <ion-label class="text-sm text-gray-600">{% trans "Amount" %} *</ion-label>
+                            <ion-input
+                                type="number"
+                                name="amount"
+                                value="{{ form_data.amount|default:'0.00' }}"
+                                step="0.01"
+                                min="0.01"
+                                required
+                                placeholder="0.00"
+                                class="mt-1">
+                            </ion-input>
+                        </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Amount -->
-                    <div>
-                        <ion-label class="text-sm text-gray-600">{% trans "Amount" %} *</ion-label>
-                        <ion-input
-                            type="number"
-                            name="amount"
-                            value="{{ form_data.amount|default:'0.00' }}"
-                            step="0.01"
-                            min="0.01"
-                            required
-                            placeholder="0.00"
-                            class="mt-1">
-                        </ion-input>
+                        <!-- Customer Name -->
+                        <div>
+                            <ion-label class="text-sm text-gray-600">{% trans "Customer Name" %}</ion-label>
+                            <ion-input
+                                name="customer_name"
+                                value="{{ form_data.customer_name }}"
+                                placeholder="{% trans 'Optional' %}"
+                                class="mt-1">
+                            </ion-input>
+                        </div>
+
+                        <!-- Customer Email -->
+                        <div>
+                            <ion-label class="text-sm text-gray-600">{% trans "Customer Email" %}</ion-label>
+                            <ion-input
+                                type="email"
+                                name="customer_email"
+                                value="{{ form_data.customer_email }}"
+                                placeholder="{% trans 'Optional' %}"
+                                class="mt-1">
+                            </ion-input>
+                        </div>
+
+                        <!-- Customer Phone -->
+                        <div>
+                            <ion-label class="text-sm text-gray-600">{% trans "Customer Phone" %}</ion-label>
+                            <ion-input
+                                type="tel"
+                                name="customer_phone"
+                                value="{{ form_data.customer_phone }}"
+                                placeholder="{% trans 'Optional' %}"
+                                class="mt-1">
+                            </ion-input>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="md:col-span-2">
+                            <ion-label class="text-sm text-gray-600">{% trans "Notes" %}</ion-label>
+                            <ion-textarea
+                                name="notes"
+                                placeholder="{% trans 'Reason for issuing this credit' %}"
+                                rows="3"
+                                class="mt-1">{{ form_data.notes }}</ion-textarea>
+                        </div>
                     </div>
 
-                    <!-- Customer Name -->
-                    <div>
-                        <ion-label class="text-sm text-gray-600">{% trans "Customer Name" %}</ion-label>
-                        <ion-input
-                            name="customer_name"
-                            value="{{ form_data.customer_name }}"
-                            placeholder="{% trans 'Optional' %}"
-                            class="mt-1">
-                        </ion-input>
+                    <!-- Actions -->
+                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                        <ion-button
+                            fill="outline"
+                            color="medium"
+                            hx-get="{% url 'returns:credit_list' %}"
+                            hx-target="#main-content-area"
+                            hx-push-url="true">
+                            {% trans "Cancel" %}
+                        </ion-button>
+                        <ion-button type="submit">
+                            <ion-icon slot="start" name="checkmark"></ion-icon>
+                            {% trans "Issue Credit" %}
+                        </ion-button>
                     </div>
-
-                    <!-- Customer Email -->
-                    <div>
-                        <ion-label class="text-sm text-gray-600">{% trans "Customer Email" %}</ion-label>
-                        <ion-input
-                            type="email"
-                            name="customer_email"
-                            value="{{ form_data.customer_email }}"
-                            placeholder="{% trans 'Optional' %}"
-                            class="mt-1">
-                        </ion-input>
-                    </div>
-
-                    <!-- Customer Phone -->
-                    <div>
-                        <ion-label class="text-sm text-gray-600">{% trans "Customer Phone" %}</ion-label>
-                        <ion-input
-                            type="tel"
-                            name="customer_phone"
-                            value="{{ form_data.customer_phone }}"
-                            placeholder="{% trans 'Optional' %}"
-                            class="mt-1">
-                        </ion-input>
-                    </div>
-
-                    <!-- Notes -->
-                    <div class="md:col-span-2">
-                        <ion-label class="text-sm text-gray-600">{% trans "Notes" %}</ion-label>
-                        <ion-textarea
-                            name="notes"
-                            placeholder="{% trans 'Reason for issuing this credit' %}"
-                            rows="3"
-                            class="mt-1">{{ form_data.notes }}</ion-textarea>
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
-                    <ion-button
-                        fill="outline"
-                        color="medium"
-                        hx-get="{% url 'returns:credit_list' %}"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        {% trans "Cancel" %}
-                    </ion-button>
-                    <ion-button type="submit">
-                        <ion-icon slot="start" name="checkmark"></ion-icon>
-                        {% trans "Issue Credit" %}
-                    </ion-button>
-                </div>
-            </form>
-        </ion-card-content>
-    </ion-card>
-</ion-content>
+                </form>
+            </ion-card-content>
+        </ion-card>
+    {% endfill %}
+{% endcomponent %}
