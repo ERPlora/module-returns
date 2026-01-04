@@ -67,16 +67,46 @@ SETTINGS = {
 }
 
 # Permissions
+# Format: (action_suffix, display_name) -> becomes "returns.action_suffix"
 PERMISSIONS = [
-    "returns.view_return",
-    "returns.add_return",
-    "returns.change_return",
-    "returns.delete_return",
-    "returns.view_returnreason",
-    "returns.add_returnreason",
-    "returns.change_returnreason",
-    "returns.delete_returnreason",
-    "returns.view_storecredit",
-    "returns.add_storecredit",
-    "returns.change_storecredit",
+    ("view_return", _("Can view returns")),
+    ("add_return", _("Can create returns")),
+    ("change_return", _("Can edit returns")),
+    ("delete_return", _("Can delete returns")),
+    ("approve_return", _("Can approve returns")),
+    ("view_reason", _("Can view return reasons")),
+    ("add_reason", _("Can add return reasons")),
+    ("change_reason", _("Can edit return reasons")),
+    ("delete_reason", _("Can delete return reasons")),
+    ("view_credit", _("Can view store credits")),
+    ("add_credit", _("Can add store credits")),
+    ("change_credit", _("Can edit store credits")),
+    ("use_credit", _("Can use store credits")),
 ]
+
+# Role Permissions - Default permissions for each system role in this module
+# Keys are role names, values are lists of permission suffixes (without module prefix)
+# Use ["*"] to grant all permissions in this module
+ROLE_PERMISSIONS = {
+    "admin": ["*"],  # Full access to all returns permissions
+    "manager": [
+        "view_return",
+        "add_return",
+        "change_return",
+        "approve_return",
+        "view_reason",
+        "add_reason",
+        "change_reason",
+        "view_credit",
+        "add_credit",
+        "change_credit",
+        "use_credit",
+    ],
+    "employee": [
+        "view_return",
+        "add_return",
+        "view_reason",
+        "view_credit",
+        "use_credit",
+    ],
+}
