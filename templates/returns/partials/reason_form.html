@@ -1,130 +1,143 @@
-{% load i18n component_tags %}
+{% load i18n djicons %}
 
-{% if is_edit %}
-{% component "page"
-    title=_("Edit Reason")
-    module_id="returns"
-    tabbar_view="settings"
-    hide_tabbar=True
-    back_url="returns:reason_list" %}
-{% else %}
-{% component "page"
-    title=_("New Reason")
-    module_id="returns"
-    tabbar_view="settings"
-    hide_tabbar=True
-    back_url="returns:reason_list" %}
+<div class="p-4">
+    <!-- Back Button -->
+    <button class="btn btn-ghost btn-sm mb-4"
+        hx-get="{% url 'returns:reasons' %}"
+        hx-target="#main-content-area"
+        hx-push-url="true">
+        {% icon "arrow-back-outline" css_class="mr-1" %}
+        {% trans "Back to Reasons" %}
+    </button>
+
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">{% if is_new %}{% trans "New Reason" %}{% else %}{% trans "Edit Reason" %}{% endif %}</h1>
+    </div>
+
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Basic Info -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">{% trans "Reason Information" %}</h3>
+            </div>
+            <div class="card-body space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">{% trans "Name" %} *</label>
+                    {{ form.name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">{% trans "Description" %}</label>
+                    {{ form.description }}
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">{% trans "Sort Order" %}</label>
+                        {{ form.sort_order }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Options -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">{% trans "Options" %}</h3>
+            </div>
+            <div class="list">
+                <div class="list-item">
+                    <div class="list-item-content">
+                        <div class="list-item-label">{% trans "Restocks Inventory" %}</div>
+                        <div class="list-item-note">{% trans "Returned items are added back to stock" %}</div>
+                    </div>
+                    <div class="list-item-end">
+                        <label class="toggle">
+                            {{ form.restocks_inventory }}
+                            
+                        </label>
+                    </div>
+                </div>
+                <div class="list-item">
+                    <div class="list-item-content">
+                        <div class="list-item-label">{% trans "Requires Note" %}</div>
+                        <div class="list-item-note">{% trans "A note must be provided when using this reason" %}</div>
+                    </div>
+                    <div class="list-item-end">
+                        <label class="toggle">
+                            {{ form.requires_note }}
+                            
+                        </label>
+                    </div>
+                </div>
+                {% if not is_new %}
+                <div class="list-item">
+                    <div class="list-item-content">
+                        <div class="list-item-label">{% trans "Active" %}</div>
+                        <div class="list-item-note">{% trans "Inactive reasons are hidden from selection" %}</div>
+                    </div>
+                    <div class="list-item-end">
+                        <label class="toggle">
+                            {{ form.is_active }}
+                            
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if form.errors %}
+        <div class="card" style="border-color: var(--color-error)">
+            <div class="card-body">
+                <div class="text-error text-sm">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <p>{{ error }}</p>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="flex {% if not is_new %}justify-between{% else %}justify-end{% endif %} gap-3">
+            {% if not is_new %}
+            <button type="button" class="btn btn-outline color-error"
+                    onclick="deleteReason()">
+                {% icon "trash-outline" %} {% trans "Delete" %}
+            </button>
+            {% endif %}
+            <div class="flex gap-3">
+                <button type="button" class="btn btn-outline"
+                    hx-get="{% url 'returns:reasons' %}"
+                    hx-target="#main-content-area"
+                    hx-push-url="true">
+                    {% trans "Cancel" %}
+                </button>
+                <button type="submit" class="btn color-primary">
+                    {% icon "save-outline" css_class="mr-2" %}
+                    {% if is_new %}{% trans "Create Reason" %}{% else %}{% trans "Save Changes" %}{% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if not is_new %}
+<script>
+function deleteReason() {
+    if (confirm('{% trans "Delete this reason?" %}')) {
+        fetch('{% url "returns:reason_delete" reason.id %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                htmx.ajax('GET', '{% url "returns:reasons" %}', '#main-content-area');
+            }
+        });
+    }
+}
+</script>
 {% endif %}
-
-    {% fill "content" %}
-        <ion-card>
-            <ion-card-content>
-                <form method="post"
-                    hx-post="{% if is_edit %}{% url 'returns:reason_edit' pk=reason.pk %}{% else %}{% url 'returns:reason_create' %}{% endif %}"
-                    hx-target="#main-content-area">
-                    {% csrf_token %}
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Name -->
-                        <div class="md:col-span-2">
-                            <ion-label class="text-sm text-gray-600">{% trans "Name" %} *</ion-label>
-                            <ion-input
-                                name="name"
-                                value="{{ reason.name|default:form_data.name }}"
-                                placeholder="{% trans 'e.g., Defective, Wrong Item, Changed Mind' %}"
-                                required
-                                class="mt-1">
-                            </ion-input>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="md:col-span-2">
-                            <ion-label class="text-sm text-gray-600">{% trans "Description" %}</ion-label>
-                            <ion-textarea
-                                name="description"
-                                placeholder="{% trans 'Detailed description of this return reason' %}"
-                                rows="2"
-                                class="mt-1">{{ reason.description|default:form_data.description }}</ion-textarea>
-                        </div>
-
-                        <!-- Order -->
-                        <div>
-                            <ion-label class="text-sm text-gray-600">{% trans "Display Order" %}</ion-label>
-                            <ion-input
-                                type="number"
-                                name="order"
-                                value="{{ reason.order|default:form_data.order|default:0 }}"
-                                min="0"
-                                class="mt-1">
-                            </ion-input>
-                        </div>
-
-                        <!-- Options -->
-                        <div class="md:col-span-2">
-                            <ion-label class="text-sm text-gray-600 mb-2 block">{% trans "Options" %}</ion-label>
-                            <ion-list>
-                                <ion-item>
-                                    <ion-checkbox name="restocks_inventory" {% if reason.restocks_inventory or not is_edit %}checked{% endif %}></ion-checkbox>
-                                    <ion-label class="ml-3">
-                                        <h3>{% trans "Restocks Inventory" %}</h3>
-                                        <p>{% trans "Returned items are added back to stock" %}</p>
-                                    </ion-label>
-                                </ion-item>
-
-                                <ion-item>
-                                    <ion-checkbox name="requires_note" {% if reason.requires_note %}checked{% endif %}></ion-checkbox>
-                                    <ion-label class="ml-3">
-                                        <h3>{% trans "Requires Note" %}</h3>
-                                        <p>{% trans "A note must be provided when using this reason" %}</p>
-                                    </ion-label>
-                                </ion-item>
-
-                                {% if is_edit %}
-                                <ion-item>
-                                    <ion-checkbox name="is_active" {% if reason.is_active %}checked{% endif %}></ion-checkbox>
-                                    <ion-label class="ml-3">
-                                        <h3>{% trans "Active" %}</h3>
-                                        <p>{% trans "Inactive reasons are hidden from selection" %}</p>
-                                    </ion-label>
-                                </ion-item>
-                                {% endif %}
-                            </ion-list>
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex justify-between gap-3 mt-6 pt-4 border-t">
-                        {% if is_edit %}
-                        <form method="post"
-                            hx-post="{% url 'returns:reason_delete' pk=reason.pk %}"
-                            hx-confirm="{% trans 'Are you sure you want to delete this reason?' %}">
-                            {% csrf_token %}
-                            <ion-button fill="outline" color="danger" type="submit">
-                                <ion-icon slot="start" name="trash-outline"></ion-icon>
-                                {% trans "Delete" %}
-                            </ion-button>
-                        </form>
-                        {% else %}
-                        <div></div>
-                        {% endif %}
-
-                        <div class="flex gap-3">
-                            <ion-button
-                                fill="outline"
-                                color="medium"
-                                hx-get="{% url 'returns:reason_list' %}"
-                                hx-target="#main-content-area"
-                                hx-push-url="true">
-                                {% trans "Cancel" %}
-                            </ion-button>
-                            <ion-button type="submit">
-                                <ion-icon slot="start" name="checkmark"></ion-icon>
-                                {% if is_edit %}{% trans "Save Changes" %}{% else %}{% trans "Create Reason" %}{% endif %}
-                            </ion-button>
-                        </div>
-                    </div>
-                </form>
-            </ion-card-content>
-        </ion-card>
-    {% endfill %}
-{% endcomponent %}

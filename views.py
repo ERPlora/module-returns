@@ -1,544 +1,529 @@
 """
 Returns & Refunds Module Views
 
-Provides return processing, store credit management, and refund handling.
+Merged: old (ReturnReason CRUD, StoreCredit management, settings toggles) +
+new (HubBaseModel patterns, real FKs, approve/reject/complete workflow).
 """
 
 import json
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse
-from django.contrib import messages
-from django.utils.translation import gettext_lazy as _
-from django.db.models import Sum, Q
-from django.views.decorators.http import require_http_methods, require_POST, require_GET
-from django.urls import reverse
-from django.core.paginator import Paginator
-from django.utils import timezone
 from decimal import Decimal
 
+from django.db.models import Q, Sum
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+from django.views.decorators.http import require_POST, require_GET
+
+from apps.accounts.decorators import login_required
 from apps.core.htmx import htmx_view
-from .models import ReturnsConfig, ReturnReason, Return, ReturnLine, StoreCredit
+from apps.modules_runtime.navigation import with_module_nav
+
+from .forms import ReturnForm, ReturnItemForm, ReturnReasonForm
+from .models import ReturnsSettings, ReturnReason, Return, ReturnItem, StoreCredit
+
+
+def _hub_id(request):
+    return request.session.get('hub_id')
+
+
+def _employee(request):
+    user_id = request.session.get('local_user_id')
+    if user_id:
+        from apps.accounts.models import LocalUser
+        return LocalUser.objects.filter(id=user_id).first()
+    return None
 
 
 # =============================================================================
-# DASHBOARD
+# Dashboard
 # =============================================================================
 
-@htmx_view(
-    'returns/pages/index.html',
-    'returns/partials/dashboard_content.html'
-)
-def dashboard(request):
-    """
-    Returns module dashboard with statistics.
-    """
-    from apps.core.services.currency_service import format_currency
+@login_required
+@with_module_nav('returns', 'dashboard')
+@htmx_view('returns/pages/index.html', 'returns/partials/dashboard_content.html')
+def index(request):
+    hub = _hub_id(request)
+    settings = ReturnsSettings.get_settings(hub)
 
-    config = ReturnsConfig.get_config()
+    returns = Return.objects.filter(hub_id=hub, is_deleted=False)
 
-    # Get filter parameters
-    status_filter = request.GET.get('status')
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
+    total_returns = returns.count()
+    pending_returns = returns.filter(status='pending').count()
+    completed_returns = returns.filter(status='completed').count()
+    total_refunded = returns.filter(status='completed').aggregate(
+        total=Sum('total_refund')
+    )['total'] or Decimal('0.00')
 
-    # Build queryset
-    returns = Return.objects.all().select_related('reason')
+    recent = returns.select_related(
+        'customer', 'employee', 'reason',
+    ).order_by('-created_at')[:10]
 
+    return {
+        'page_title': _('Returns'),
+        'settings': settings,
+        'recent_returns': recent,
+        'total_returns': total_returns,
+        'pending_returns': pending_returns,
+        'completed_returns': completed_returns,
+        'total_refunded': total_refunded,
+    }
+
+
+# =============================================================================
+# Return CRUD
+# =============================================================================
+
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/return_list.html', 'returns/partials/return_list.html')
+def return_list(request):
+    hub = _hub_id(request)
+    search = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', '')
+    method_filter = request.GET.get('refund_method', '')
+
+    returns = Return.objects.filter(
+        hub_id=hub, is_deleted=False,
+    ).select_related(
+        'customer', 'employee', 'original_sale', 'reason',
+    ).order_by('-created_at')
+
+    if search:
+        returns = returns.filter(
+            Q(number__icontains=search) |
+            Q(customer__name__icontains=search) |
+            Q(reason_notes__icontains=search)
+        )
     if status_filter:
         returns = returns.filter(status=status_filter)
-    if date_from:
-        returns = returns.filter(created_at__date__gte=date_from)
-    if date_to:
-        returns = returns.filter(created_at__date__lte=date_to)
+    if method_filter:
+        returns = returns.filter(refund_method=method_filter)
 
-    # Statistics
-    total_returns = Return.objects.count()
-    pending_returns = Return.objects.filter(status=Return.STATUS_PENDING).count()
-    processed_returns = Return.objects.filter(status=Return.STATUS_PROCESSED).count()
-    total_refunded = Return.objects.filter(
-        status=Return.STATUS_PROCESSED
-    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
-
-    # Recent returns with formatted amounts
-    recent_returns_qs = returns.order_by('-created_at')[:10]
-    recent_returns = []
-    for ret in recent_returns_qs:
-        ret.total_amount_formatted = format_currency(ret.total_amount)
-        recent_returns.append(ret)
-
-    context = {
-        'config': config,
-        'recent_returns': recent_returns,
+    return {
+        'page_title': _('Returns'),
+        'returns': returns[:100],
+        'search_query': search,
         'status_filter': status_filter,
-        'stats': {
-            'total': total_returns,
-            'pending': pending_returns,
-            'processed': processed_returns,
-            'total_refunded_formatted': format_currency(total_refunded),
-        }
+        'method_filter': method_filter,
     }
 
-    return context
 
-
-# =============================================================================
-# RETURN CRUD
-# =============================================================================
-
-@htmx_view(
-    'returns/pages/return_list.html',
-    'returns/partials/return_list.html'
-)
-def return_list(request):
-    """List all returns with filtering and pagination."""
-    returns = Return.objects.all().select_related('reason').order_by('-created_at')
-
-    # Filters
-    status = request.GET.get('status')
-    if status:
-        returns = returns.filter(status=status)
-
-    # Pagination
-    paginator = Paginator(returns, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/return_detail.html', 'returns/partials/return_detail.html')
+def return_detail(request, return_id):
+    hub = _hub_id(request)
+    return_obj = get_object_or_404(
+        Return, id=return_id, hub_id=hub, is_deleted=False,
+    )
+    items = return_obj.items.filter(is_deleted=False).select_related('product')
 
     return {
-        'returns': page_obj,
-        'status_filter': status,
+        'page_title': str(return_obj),
+        'return_obj': return_obj,
+        'items': items,
     }
 
 
-@htmx_view(
-    'returns/pages/return_form.html',
-    'returns/partials/return_form.html'
-)
-def return_create(request):
-    """Create a new return."""
-    config = ReturnsConfig.get_config()
-    reasons = ReturnReason.objects.filter(is_active=True).order_by('order', 'name')
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/return_form.html', 'returns/partials/return_form.html')
+def return_add(request):
+    hub = _hub_id(request)
+    settings = ReturnsSettings.get_settings(hub)
+    reasons = ReturnReason.objects.filter(
+        hub_id=hub, is_deleted=False, is_active=True,
+    ).order_by('sort_order', 'name')
 
     if request.method == 'POST':
-        sale_id = request.POST.get('sale_id', '').strip()
-        reason_id = request.POST.get('reason')
-        notes = request.POST.get('notes', '').strip()
-        refund_method = request.POST.get('refund_method', Return.REFUND_CASH)
+        form = ReturnForm(request.POST)
+        if form.is_valid():
+            return_obj = form.save(commit=False)
+            return_obj.hub_id = hub
+            return_obj.employee = _employee(request)
+            return_obj.save()
 
-        # Validate
-        if config.require_receipt and not sale_id:
-            messages.error(request, _("Sale ID / Receipt is required"))
             return {
-                'form_data': request.POST,
-                'reasons': reasons,
-                'config': config,
-                'is_edit': False,
+                'page_title': _('Returns'),
+                'returns': Return.objects.filter(
+                    hub_id=hub, is_deleted=False
+                ).order_by('-created_at')[:100],
+                'template': 'returns/partials/list.html',
+                'success_message': _('Return created successfully'),
             }
-
-        reason = None
-        if reason_id:
-            reason = get_object_or_404(ReturnReason, pk=reason_id)
-            if reason.requires_note and not notes:
-                messages.error(request, _("Notes are required for this return reason"))
-                return {
-                    'form_data': request.POST,
-                    'reasons': reasons,
-                    'config': config,
-                    'is_edit': False,
-                }
-
-        # Create return
-        return_order = Return.objects.create(
-            sale_id=sale_id if sale_id else None,
-            reason=reason,
-            notes=notes,
-            refund_method=refund_method,
-        )
-
-        messages.success(request, _("Return created. Add items to continue."))
-
-        response = HttpResponse()
-        response['HX-Redirect'] = reverse('returns:return_detail', kwargs={'pk': return_order.pk})
-        return response
+    else:
+        form = ReturnForm()
 
     return {
+        'page_title': _('New Return'),
+        'form': form,
         'reasons': reasons,
-        'config': config,
-        'is_edit': False,
+        'settings': settings,
+        'is_new': True,
     }
 
 
-@htmx_view(
-    'returns/pages/return_detail.html',
-    'returns/partials/return_detail.html'
-)
-def return_detail(request, pk):
-    """View return details."""
-    return_order = get_object_or_404(Return, pk=pk)
-    lines = return_order.lines.all()
-
-    return {
-        'return_order': return_order,
-        'lines': lines,
-    }
-
-
-@htmx_view(
-    'returns/pages/return_form.html',
-    'returns/partials/return_form.html'
-)
-def return_edit(request, pk):
-    """Edit a return."""
-    return_order = get_object_or_404(Return, pk=pk)
-    reasons = ReturnReason.objects.filter(is_active=True).order_by('order', 'name')
-    config = ReturnsConfig.get_config()
-
-    if return_order.status == Return.STATUS_PROCESSED:
-        messages.error(request, _("Cannot edit a processed return"))
-        response = HttpResponse()
-        response['HX-Redirect'] = reverse('returns:return_detail', kwargs={'pk': pk})
-        return response
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/return_form.html', 'returns/partials/return_form.html')
+def return_edit(request, return_id):
+    hub = _hub_id(request)
+    return_obj = get_object_or_404(
+        Return, id=return_id, hub_id=hub, is_deleted=False,
+    )
+    reasons = ReturnReason.objects.filter(
+        hub_id=hub, is_deleted=False, is_active=True,
+    ).order_by('sort_order', 'name')
 
     if request.method == 'POST':
-        reason_id = request.POST.get('reason')
-        notes = request.POST.get('notes', '').strip()
-        refund_method = request.POST.get('refund_method', Return.REFUND_CASH)
-
-        if reason_id:
-            return_order.reason = get_object_or_404(ReturnReason, pk=reason_id)
-        return_order.notes = notes
-        return_order.refund_method = refund_method
-        return_order.save()
-
-        messages.success(request, _("Return updated successfully"))
-
-        response = HttpResponse()
-        response['HX-Redirect'] = reverse('returns:return_detail', kwargs={'pk': pk})
-        return response
+        form = ReturnForm(request.POST, instance=return_obj)
+        if form.is_valid():
+            form.save()
+            return {
+                'page_title': _('Returns'),
+                'returns': Return.objects.filter(
+                    hub_id=hub, is_deleted=False
+                ).order_by('-created_at')[:100],
+                'template': 'returns/partials/list.html',
+                'success_message': _('Return updated successfully'),
+            }
+    else:
+        form = ReturnForm(instance=return_obj)
 
     return {
-        'return_order': return_order,
+        'page_title': _('Edit Return'),
+        'form': form,
+        'return_obj': return_obj,
         'reasons': reasons,
-        'config': config,
-        'is_edit': True,
+        'is_new': False,
     }
 
 
+@login_required
 @require_POST
-def return_approve(request, pk):
-    """Approve a pending return."""
-    return_order = get_object_or_404(Return, pk=pk)
+def return_delete(request, return_id):
+    hub = _hub_id(request)
+    return_obj = get_object_or_404(
+        Return, id=return_id, hub_id=hub, is_deleted=False,
+    )
+    return_obj.is_deleted = True
+    return_obj.deleted_at = timezone.now()
+    return_obj.save(update_fields=['is_deleted', 'deleted_at', 'updated_at'])
 
-    if return_order.status != Return.STATUS_PENDING:
-        messages.error(request, _("Only pending returns can be approved"))
-    else:
-        return_order.approve()
-        messages.success(request, _("Return approved"))
-
-    response = HttpResponse()
-    response['HX-Redirect'] = reverse('returns:return_detail', kwargs={'pk': pk})
-    return response
-
-
-@require_POST
-def return_process(request, pk):
-    """Process an approved return and issue refund."""
-    return_order = get_object_or_404(Return, pk=pk)
-
-    if return_order.status not in [Return.STATUS_PENDING, Return.STATUS_APPROVED]:
-        messages.error(request, _("This return cannot be processed"))
-    elif not return_order.lines.exists():
-        messages.error(request, _("Cannot process return without items"))
-    else:
-        # Get username if available
-        processed_by = getattr(request.user, 'username', '') if hasattr(request, 'user') else ''
-        return_order.process(processed_by=processed_by)
-
-        # Create store credit if refund method is store credit
-        if return_order.refund_method == Return.REFUND_STORE_CREDIT:
-            _create_store_credit_from_return(return_order)
-
-        messages.success(request, _("Return processed successfully"))
-
-    response = HttpResponse()
-    response['HX-Redirect'] = reverse('returns:return_detail', kwargs={'pk': pk})
-    return response
-
-
-@require_POST
-def return_cancel(request, pk):
-    """Cancel a return."""
-    return_order = get_object_or_404(Return, pk=pk)
-
-    if return_order.status == Return.STATUS_PROCESSED:
-        messages.error(request, _("Cannot cancel a processed return"))
-    else:
-        return_order.cancel()
-        messages.success(request, _("Return cancelled"))
-
-    response = HttpResponse()
-    response['HX-Redirect'] = reverse('returns:return_list')
-    return response
+    return JsonResponse({
+        'success': True,
+        'message': str(_('Return deleted successfully')),
+    })
 
 
 # =============================================================================
-# RETURN LINES
+# Return Workflow Actions
 # =============================================================================
 
+@login_required
 @require_POST
-def line_add(request, pk):
-    """Add a line item to a return."""
-    return_order = get_object_or_404(Return, pk=pk)
+def return_approve(request, return_id):
+    hub = _hub_id(request)
+    return_obj = get_object_or_404(
+        Return, id=return_id, hub_id=hub, status='pending', is_deleted=False,
+    )
+    user = _employee(request)
+    return_obj.approve(approved_by=user)
 
-    if return_order.status != Return.STATUS_PENDING:
-        messages.error(request, _("Cannot add items to a non-pending return"))
-        response = HttpResponse()
-        response['HX-Redirect'] = reverse('returns:return_detail', kwargs={'pk': pk})
-        return response
-
-    product_name = request.POST.get('product_name', '').strip()
-    product_sku = request.POST.get('product_sku', '').strip()
-    quantity = int(request.POST.get('quantity', 1))
-    unit_price = Decimal(request.POST.get('unit_price', '0.00'))
-    tax_rate = Decimal(request.POST.get('tax_rate', '21.00'))
-    condition = request.POST.get('condition', 'good')
-
-    if not product_name:
-        messages.error(request, _("Product name is required"))
-    else:
-        line = ReturnLine.objects.create(
-            return_order=return_order,
-            product_name=product_name,
-            product_sku=product_sku,
-            quantity=quantity,
-            unit_price=unit_price,
-            tax_rate=tax_rate,
-            condition=condition,
-        )
-
-        # Update return totals
-        _update_return_totals(return_order)
-
-        messages.success(request, _("Item added to return"))
-
-    response = HttpResponse()
-    response['HX-Redirect'] = reverse('returns:return_detail', kwargs={'pk': pk})
-    return response
+    return JsonResponse({
+        'success': True,
+        'message': str(_('Return approved')),
+    })
 
 
+@login_required
 @require_POST
-def line_remove(request, pk, line_pk):
-    """Remove a line item from a return."""
-    return_order = get_object_or_404(Return, pk=pk)
-    line = get_object_or_404(ReturnLine, pk=line_pk, return_order=return_order)
+def return_reject(request, return_id):
+    hub = _hub_id(request)
+    return_obj = get_object_or_404(
+        Return, id=return_id, hub_id=hub, status='pending', is_deleted=False,
+    )
+    return_obj.reject()
 
-    if return_order.status != Return.STATUS_PENDING:
-        messages.error(request, _("Cannot remove items from a non-pending return"))
-    else:
-        line.delete()
-        _update_return_totals(return_order)
-        messages.success(request, _("Item removed from return"))
+    return JsonResponse({
+        'success': True,
+        'message': str(_('Return rejected')),
+    })
 
-    response = HttpResponse()
-    response['HX-Redirect'] = reverse('returns:return_detail', kwargs={'pk': pk})
-    return response
+
+@login_required
+@require_POST
+def return_complete(request, return_id):
+    hub = _hub_id(request)
+    return_obj = get_object_or_404(
+        Return, id=return_id, hub_id=hub, status='approved', is_deleted=False,
+    )
+    return_obj.complete()
+
+    # Create store credit if refund method is store_credit
+    if return_obj.refund_method == 'store_credit':
+        _create_store_credit_from_return(hub, return_obj)
+
+    return JsonResponse({
+        'success': True,
+        'message': str(_('Return completed and refund processed')),
+    })
 
 
 # =============================================================================
-# RETURN REASONS
+# Return Items
 # =============================================================================
 
-@htmx_view(
-    'returns/pages/reasons.html',
-    'returns/partials/reason_list.html'
-)
-def reason_list(request):
-    """List all return reasons."""
-    reasons = ReturnReason.objects.all().order_by('order', 'name')
-    return {'reasons': reasons}
-
-
-@htmx_view(
-    'returns/pages/reason_form.html',
-    'returns/partials/reason_form.html'
-)
-def reason_create(request):
-    """Create a new return reason."""
-    if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
-        description = request.POST.get('description', '').strip()
-        restocks_inventory = request.POST.get('restocks_inventory') == 'on'
-        requires_note = request.POST.get('requires_note') == 'on'
-        order = int(request.POST.get('order', 0))
-
-        if not name:
-            messages.error(request, _("Name is required"))
-            return {'form_data': request.POST, 'is_edit': False}
-
-        ReturnReason.objects.create(
-            name=name,
-            description=description,
-            restocks_inventory=restocks_inventory,
-            requires_note=requires_note,
-            order=order,
-        )
-
-        messages.success(request, _("Return reason created"))
-
-        response = HttpResponse()
-        response['HX-Redirect'] = reverse('returns:reason_list')
-        return response
-
-    return {'is_edit': False}
-
-
-@htmx_view(
-    'returns/pages/reason_form.html',
-    'returns/partials/reason_form.html'
-)
-def reason_edit(request, pk):
-    """Edit a return reason."""
-    reason = get_object_or_404(ReturnReason, pk=pk)
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/return_detail.html', 'returns/partials/return_detail.html')
+def item_add(request, return_id):
+    hub = _hub_id(request)
+    return_obj = get_object_or_404(
+        Return, id=return_id, hub_id=hub, is_deleted=False,
+    )
 
     if request.method == 'POST':
-        reason.name = request.POST.get('name', '').strip()
-        reason.description = request.POST.get('description', '').strip()
-        reason.restocks_inventory = request.POST.get('restocks_inventory') == 'on'
-        reason.requires_note = request.POST.get('requires_note') == 'on'
-        reason.order = int(request.POST.get('order', 0))
-        reason.is_active = request.POST.get('is_active') == 'on'
+        form = ReturnItemForm(request.POST)
+        if form.is_valid():
+            item = form.save(commit=False)
+            item.hub_id = hub
+            item.return_obj = return_obj
+            item.save()
+            return_obj.recalculate_total()
 
-        if not reason.name:
-            messages.error(request, _("Name is required"))
-            return {'reason': reason, 'form_data': request.POST, 'is_edit': True}
-
-        reason.save()
-        messages.success(request, _("Return reason updated"))
-
-        response = HttpResponse()
-        response['HX-Redirect'] = reverse('returns:reason_list')
-        return response
-
-    return {'reason': reason, 'is_edit': True}
-
-
-@require_POST
-def reason_delete(request, pk):
-    """Delete a return reason."""
-    reason = get_object_or_404(ReturnReason, pk=pk)
-
-    if Return.objects.filter(reason=reason).exists():
-        messages.error(request, _("Cannot delete reason in use by returns"))
+            items = return_obj.items.filter(is_deleted=False).select_related('product')
+            return {
+                'page_title': str(return_obj),
+                'return_obj': return_obj,
+                'items': items,
+                'template': 'returns/partials/detail.html',
+                'success_message': _('Item added to return'),
+            }
     else:
-        reason.delete()
-        messages.success(request, _("Return reason deleted"))
+        form = ReturnItemForm()
 
-    response = HttpResponse()
-    response['HX-Redirect'] = reverse('returns:reason_list')
-    return response
+    return {
+        'page_title': _('Add Item'),
+        'form': form,
+        'return_obj': return_obj,
+    }
+
+
+@login_required
+@require_POST
+def item_delete(request, return_id, item_id):
+    hub = _hub_id(request)
+    return_obj = get_object_or_404(
+        Return, id=return_id, hub_id=hub, is_deleted=False,
+    )
+    item = get_object_or_404(
+        ReturnItem, id=item_id, return_obj=return_obj, is_deleted=False,
+    )
+    item.is_deleted = True
+    item.deleted_at = timezone.now()
+    item.save(update_fields=['is_deleted', 'deleted_at', 'updated_at'])
+    return_obj.recalculate_total()
+
+    return JsonResponse({
+        'success': True,
+        'message': str(_('Item removed from return')),
+    })
 
 
 # =============================================================================
-# STORE CREDIT
+# Return Reasons (from old)
 # =============================================================================
 
-@htmx_view(
-    'returns/pages/credits.html',
-    'returns/partials/credit_list.html'
-)
-def credit_list(request):
-    """List all store credits."""
-    credits = StoreCredit.objects.all().order_by('-created_at')
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/reasons.html', 'returns/partials/reason_list.html')
+def reasons(request):
+    hub = _hub_id(request)
+    reasons_list = ReturnReason.objects.filter(
+        hub_id=hub, is_deleted=False,
+    ).order_by('sort_order', 'name')
 
-    # Filters
-    active_only = request.GET.get('active')
+    return {
+        'page_title': _('Return Reasons'),
+        'reasons': reasons_list,
+    }
+
+
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/reason_form.html', 'returns/partials/reason_form.html')
+def reason_add(request):
+    hub = _hub_id(request)
+
+    if request.method == 'POST':
+        form = ReturnReasonForm(request.POST)
+        if form.is_valid():
+            reason = form.save(commit=False)
+            reason.hub_id = hub
+            reason.save()
+
+            return {
+                'page_title': _('Return Reasons'),
+                'reasons': ReturnReason.objects.filter(
+                    hub_id=hub, is_deleted=False
+                ).order_by('sort_order', 'name'),
+                'template': 'returns/partials/reasons.html',
+                'success_message': _('Reason created'),
+            }
+    else:
+        form = ReturnReasonForm()
+
+    return {
+        'page_title': _('Add Reason'),
+        'form': form,
+        'is_new': True,
+    }
+
+
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/reason_form.html', 'returns/partials/reason_form.html')
+def reason_edit(request, reason_id):
+    hub = _hub_id(request)
+    reason = get_object_or_404(
+        ReturnReason, id=reason_id, hub_id=hub, is_deleted=False,
+    )
+
+    if request.method == 'POST':
+        form = ReturnReasonForm(request.POST, instance=reason)
+        if form.is_valid():
+            form.save()
+            return {
+                'page_title': _('Return Reasons'),
+                'reasons': ReturnReason.objects.filter(
+                    hub_id=hub, is_deleted=False
+                ).order_by('sort_order', 'name'),
+                'template': 'returns/partials/reasons.html',
+                'success_message': _('Reason updated'),
+            }
+    else:
+        form = ReturnReasonForm(instance=reason)
+
+    return {
+        'page_title': _('Edit Reason'),
+        'form': form,
+        'reason': reason,
+        'is_new': False,
+    }
+
+
+@login_required
+@require_POST
+def reason_delete(request, reason_id):
+    hub = _hub_id(request)
+    reason = get_object_or_404(
+        ReturnReason, id=reason_id, hub_id=hub, is_deleted=False,
+    )
+    reason.is_deleted = True
+    reason.deleted_at = timezone.now()
+    reason.save(update_fields=['is_deleted', 'deleted_at', 'updated_at'])
+
+    return JsonResponse({
+        'success': True,
+        'message': str(_('Reason deleted')),
+    })
+
+
+# =============================================================================
+# Store Credits (from old)
+# =============================================================================
+
+@login_required
+@with_module_nav('returns', 'credits')
+@htmx_view('returns/pages/credits.html', 'returns/partials/credit_list.html')
+def credits(request):
+    hub = _hub_id(request)
+    search = request.GET.get('q', '').strip()
+    active_only = request.GET.get('active', '')
+
+    qs = StoreCredit.objects.filter(
+        hub_id=hub, is_deleted=False,
+    ).select_related('customer').order_by('-created_at')
+
     if active_only == '1':
-        credits = credits.filter(is_active=True, current_amount__gt=0)
-
-    search = request.GET.get('search', '').strip()
+        qs = qs.filter(is_active=True, current_amount__gt=0)
     if search:
-        credits = credits.filter(
+        qs = qs.filter(
             Q(code__icontains=search) |
             Q(customer_name__icontains=search) |
-            Q(customer_email__icontains=search) |
-            Q(customer_phone__icontains=search)
+            Q(customer__name__icontains=search)
         )
 
-    # Pagination
-    paginator = Paginator(credits, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
     return {
-        'credits': page_obj,
-        'search': search,
+        'page_title': _('Store Credits'),
+        'credits': qs[:100],
+        'search_query': search,
         'active_only': active_only,
     }
 
 
-@htmx_view(
-    'returns/pages/credit_detail.html',
-    'returns/partials/credit_detail.html'
-)
-def credit_detail(request, pk):
-    """View store credit details."""
-    credit = get_object_or_404(StoreCredit, pk=pk)
-    return {'credit': credit}
+@login_required
+@with_module_nav('returns', 'credits')
+@htmx_view('returns/pages/credit_form.html', 'returns/partials/credit_form.html')
+def credit_add(request):
+    hub = _hub_id(request)
 
-
-@htmx_view(
-    'returns/pages/credit_form.html',
-    'returns/partials/credit_form.html'
-)
-def credit_create(request):
-    """Create a new store credit manually."""
     if request.method == 'POST':
         customer_name = request.POST.get('customer_name', '').strip()
-        customer_email = request.POST.get('customer_email', '').strip()
-        customer_phone = request.POST.get('customer_phone', '').strip()
         amount = Decimal(request.POST.get('amount', '0.00'))
         notes = request.POST.get('notes', '').strip()
 
         if amount <= 0:
-            messages.error(request, _("Amount must be greater than zero"))
-            return {'form_data': request.POST}
-
-        # Generate code
-        import secrets
-        code = f"SC-{secrets.token_hex(4).upper()}"
+            return {
+                'page_title': _('Add Store Credit'),
+                'form_data': request.POST,
+                'error': _('Amount must be greater than zero'),
+            }
 
         StoreCredit.objects.create(
-            code=code,
+            hub_id=hub,
+            code=StoreCredit.generate_code(),
             customer_name=customer_name,
-            customer_email=customer_email,
-            customer_phone=customer_phone,
             original_amount=amount,
             current_amount=amount,
             notes=notes,
         )
 
-        messages.success(request, _("Store credit created with code: ") + code)
+        return {
+            'page_title': _('Store Credits'),
+            'credits': StoreCredit.objects.filter(
+                hub_id=hub, is_deleted=False
+            ).order_by('-created_at')[:100],
+            'template': 'returns/partials/credits.html',
+            'success_message': _('Store credit created'),
+        }
 
-        response = HttpResponse()
-        response['HX-Redirect'] = reverse('returns:credit_list')
-        return response
-
-    return {}
+    return {
+        'page_title': _('Add Store Credit'),
+    }
 
 
+@login_required
 @require_GET
 def credit_lookup(request):
     """API: Lookup store credit by code."""
+    hub = _hub_id(request)
     code = request.GET.get('code', '').strip()
 
     if not code:
         return JsonResponse({'error': 'Code is required'}, status=400)
 
     try:
-        credit = StoreCredit.objects.get(code=code)
+        credit = StoreCredit.objects.get(
+            hub_id=hub, code=code, is_deleted=False,
+        )
         return JsonResponse({
             'code': credit.code,
-            'customer_name': credit.customer_name,
+            'customer_name': credit.customer_name or (
+                credit.customer.name if credit.customer else ''
+            ),
             'original_amount': str(credit.original_amount),
             'current_amount': str(credit.current_amount),
             'is_valid': credit.is_valid,
@@ -550,138 +535,94 @@ def credit_lookup(request):
 
 
 # =============================================================================
-# SETTINGS
+# Refunds View (from old — completed returns)
 # =============================================================================
 
-@htmx_view(
-    'returns/pages/settings.html',
-    'returns/partials/settings.html'
-)
-def settings_view(request):
-    """Returns module settings."""
-    config = ReturnsConfig.get_config()
+@login_required
+@with_module_nav('returns', 'returns')
+@htmx_view('returns/pages/return_list.html', 'returns/partials/return_list.html')
+def refunds(request):
+    hub = _hub_id(request)
+    search = request.GET.get('q', '').strip()
+
+    completed = Return.objects.filter(
+        hub_id=hub, status='completed', is_deleted=False,
+    ).select_related('customer', 'employee').order_by('-completed_at')
+
+    if search:
+        completed = completed.filter(
+            Q(number__icontains=search) |
+            Q(customer__name__icontains=search)
+        )
+
+    total_refunded = completed.aggregate(
+        total=Sum('total_refund')
+    )['total'] or Decimal('0')
+
     return {
-        'config': config,
-        'returns_toggle_url': reverse('returns:settings_toggle'),
-        'returns_input_url': reverse('returns:settings_input'),
+        'page_title': _('Refunds'),
+        'refunds': completed[:100],
+        'search_query': search,
+        'total_refunded': total_refunded,
+        'refund_count': completed.count(),
     }
 
 
-@require_POST
-def settings_save(request):
-    """Save returns settings via JSON."""
-    try:
-        data = json.loads(request.body)
-        config = ReturnsConfig.get_config()
+# =============================================================================
+# Settings
+# =============================================================================
 
-        config.allow_returns = data.get('allow_returns', True)
-        config.require_receipt = data.get('require_receipt', True)
-        config.allow_store_credit = data.get('allow_store_credit', True)
-        config.return_window_days = int(data.get('return_window_days', 30))
-        config.auto_restore_stock = data.get('auto_restore_stock', True)
-        config.save()
+@login_required
+@with_module_nav('returns', 'settings')
+@htmx_view('returns/pages/settings.html', 'returns/partials/settings.html')
+def settings_view(request):
+    hub = _hub_id(request)
+    settings = ReturnsSettings.get_settings(hub)
 
-        return JsonResponse({'success': True, 'message': 'Settings saved'})
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    if request.method == 'POST':
+        name = request.POST.get('name', '')
+        value = request.POST.get('value', 'false')
 
+        boolean_settings = [
+            'allow_returns', 'require_receipt',
+            'allow_store_credit', 'auto_restore_stock',
+        ]
 
-@require_http_methods(["POST"])
-def settings_toggle(request):
-    """Toggle a single setting via HTMX."""
-    # Support both 'name'/'value' (new components) and 'setting_name'/'setting_value' (legacy)
-    name = request.POST.get('name') or request.POST.get('setting_name')
-    value = request.POST.get('value', request.POST.get('setting_value', 'false'))
-    setting_value = value == 'true' or value is True
+        if name in boolean_settings:
+            setattr(settings, name, value == 'true')
+            settings.save(update_fields=[name, 'updated_at'])
 
-    config = ReturnsConfig.get_config()
+        elif name == 'return_window_days':
+            try:
+                settings.return_window_days = int(value)
+                settings.save(update_fields=['return_window_days', 'updated_at'])
+            except (ValueError, TypeError):
+                pass
 
-    boolean_settings = ['allow_returns', 'require_receipt', 'allow_store_credit',
-                       'auto_restore_stock']
+        response = HttpResponse(status=204)
+        response['HX-Trigger'] = json.dumps({
+            'showToast': {'message': str(_('Setting updated')), 'color': 'success'}
+        })
+        return response
 
-    if name in boolean_settings:
-        setattr(config, name, setting_value)
-        config.save()
-
-    response = HttpResponse(status=204)
-    response['HX-Trigger'] = json.dumps({
-        'showToast': {'message': str(_('Setting updated')), 'color': 'success'}
-    })
-    return response
-
-
-@require_http_methods(["POST"])
-def settings_input(request):
-    """Update a numeric setting via HTMX."""
-    # Support both 'name'/'value' (new components) and 'setting_name'/'setting_value' (legacy)
-    name = request.POST.get('name') or request.POST.get('setting_name')
-    value = request.POST.get('value') or request.POST.get('setting_value')
-
-    config = ReturnsConfig.get_config()
-
-    if name == 'return_window_days':
-        try:
-            config.return_window_days = int(value)
-            config.save()
-        except (ValueError, TypeError):
-            pass
-
-    response = HttpResponse(status=204)
-    response['HX-Trigger'] = json.dumps({
-        'showToast': {'message': str(_('Setting updated')), 'color': 'success'}
-    })
-    return response
-
-
-@require_http_methods(["POST"])
-def settings_reset(request):
-    """Reset all settings to defaults via HTMX."""
-    config = ReturnsConfig.get_config()
-
-    config.allow_returns = True
-    config.require_receipt = True
-    config.allow_store_credit = True
-    config.return_window_days = 30
-    config.auto_restore_stock = True
-    config.save()
-
-    response = HttpResponse(status=204)
-    response['HX-Trigger'] = json.dumps({
-        'showToast': {'message': str(_('Settings reset to defaults')), 'color': 'warning'},
-        'refreshPage': True
-    })
-    return response
+    return {
+        'page_title': _('Return Settings'),
+        'settings': settings,
+    }
 
 
 # =============================================================================
-# HELPER FUNCTIONS
+# Helpers
 # =============================================================================
 
-def _update_return_totals(return_order):
-    """Recalculate and update return totals from lines."""
-    lines = return_order.lines.all()
-
-    subtotal = sum(line.line_subtotal for line in lines)
-    tax_amount = sum(line.line_tax for line in lines)
-    total_amount = sum(line.line_total for line in lines)
-
-    return_order.subtotal = subtotal
-    return_order.tax_amount = tax_amount
-    return_order.total_amount = total_amount
-    return_order.save()
-
-
-def _create_store_credit_from_return(return_order):
-    """Create a store credit from a processed return."""
-    import secrets
-    code = f"SC-{secrets.token_hex(4).upper()}"
-
+def _create_store_credit_from_return(hub_id, return_obj):
     StoreCredit.objects.create(
-        code=code,
-        original_amount=return_order.total_amount,
-        current_amount=return_order.total_amount,
-        return_order=return_order,
-        notes=f"Created from return {return_order.return_number}",
+        hub_id=hub_id,
+        code=StoreCredit.generate_code(),
+        customer=return_obj.customer,
+        customer_name=return_obj.customer.name if return_obj.customer else '',
+        original_amount=return_obj.total_refund,
+        current_amount=return_obj.total_refund,
+        return_obj=return_obj,
+        notes=f'Created from return {return_obj.number}',
     )

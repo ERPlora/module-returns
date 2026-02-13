@@ -1,528 +1,497 @@
 """
 Returns & Refunds Module Models
 
-Provides handling for product returns, exchanges, and refunds/store credits.
-Integrates with sales and inventory modules.
+Merges old (ReturnReason, StoreCredit, config policies) with new
+(HubBaseModel, real FKs, approve/reject/complete workflow, ReturnItem).
 """
 
-from django.db import models
-from django.utils.translation import gettext_lazy as _
-from django.utils import timezone
+import secrets
 from decimal import Decimal
 
+from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import MinValueValidator
 
-class ReturnsConfig(models.Model):
-    """
-    Singleton configuration for the returns module.
+from apps.core.models import HubBaseModel
 
-    Stores global settings for return/refund processing.
-    """
-    # Return policies
+
+# =============================================================================
+# Settings (per-hub, replaces old singleton)
+# =============================================================================
+
+class ReturnsSettings(HubBaseModel):
+    """Per-hub settings for the returns module."""
+
     allow_returns = models.BooleanField(
+        _('Allow Returns'),
         default=True,
-        verbose_name=_("Allow Returns"),
-        help_text=_("Enable product returns processing")
     )
-
     return_window_days = models.PositiveIntegerField(
+        _('Return Window (Days)'),
         default=30,
-        verbose_name=_("Return Window (Days)"),
-        help_text=_("Number of days after sale to allow returns")
+        help_text=_('Number of days after sale to allow returns'),
     )
-
     allow_store_credit = models.BooleanField(
+        _('Allow Store Credit'),
         default=True,
-        verbose_name=_("Allow Store Credit"),
-        help_text=_("Allow refunds as store credit instead of cash")
     )
-
     require_receipt = models.BooleanField(
+        _('Require Receipt'),
         default=True,
-        verbose_name=_("Require Receipt"),
-        help_text=_("Require original receipt for returns")
     )
-
-    # Refund method preferences
     auto_restore_stock = models.BooleanField(
+        _('Auto Restore Stock'),
         default=True,
-        verbose_name=_("Auto Restore Stock"),
-        help_text=_("Automatically restore inventory when return is processed")
+        help_text=_('Automatically restore inventory when return is processed'),
     )
 
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        app_label = 'returns'
-        db_table = 'returns_config'
-        verbose_name = _("Returns Configuration")
-        verbose_name_plural = _("Returns Configuration")
+    class Meta(HubBaseModel.Meta):
+        db_table = 'returns_settings'
+        verbose_name = _('Returns Settings')
+        verbose_name_plural = _('Returns Settings')
+        unique_together = [('hub_id',)]
 
     def __str__(self):
-        return "Returns Configuration"
+        return f'Returns Settings (Hub {self.hub_id})'
 
     @classmethod
-    def get_config(cls):
-        """Get or create the singleton config instance."""
-        config, _ = cls.objects.get_or_create(pk=1)
-        return config
-
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
+    def get_settings(cls, hub_id):
+        settings, _ = cls.all_objects.get_or_create(hub_id=hub_id)
+        return settings
 
 
-class ReturnReason(models.Model):
-    """
-    Predefined reasons for product returns.
+# =============================================================================
+# Return Reason (from old — predefined reasons)
+# =============================================================================
 
-    Examples: Defective, Wrong Item, Changed Mind, Size Issue, etc.
-    """
-    name = models.CharField(
-        max_length=100,
-        verbose_name=_("Name"),
-        help_text=_("Display name (e.g., 'Defective', 'Wrong Item')")
-    )
+class ReturnReason(HubBaseModel):
+    """Predefined reasons for product returns."""
 
-    description = models.TextField(
-        blank=True,
-        verbose_name=_("Description"),
-        help_text=_("Detailed description of this return reason")
-    )
-
+    name = models.CharField(_('Name'), max_length=100)
+    description = models.TextField(_('Description'), blank=True, default='')
     restocks_inventory = models.BooleanField(
+        _('Restocks Inventory'),
         default=True,
-        verbose_name=_("Restocks Inventory"),
-        help_text=_("Whether returning this reason restores stock")
+        help_text=_('Whether returning with this reason restores stock'),
     )
-
     requires_note = models.BooleanField(
+        _('Requires Note'),
         default=False,
-        verbose_name=_("Requires Note"),
-        help_text=_("Whether a note is required when using this reason")
     )
+    sort_order = models.PositiveIntegerField(_('Sort Order'), default=0)
+    is_active = models.BooleanField(_('Active'), default=True)
 
-    order = models.PositiveIntegerField(
-        default=0,
-        verbose_name=_("Display Order")
-    )
-
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name=_("Active")
-    )
-
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        app_label = 'returns'
+    class Meta(HubBaseModel.Meta):
         db_table = 'returns_reason'
-        verbose_name = _("Return Reason")
-        verbose_name_plural = _("Return Reasons")
-        ordering = ['order', 'name']
+        verbose_name = _('Return Reason')
+        verbose_name_plural = _('Return Reasons')
+        ordering = ['sort_order', 'name']
 
     def __str__(self):
         return self.name
 
 
-class Return(models.Model):
-    """
-    Represents a product return/refund transaction.
+# =============================================================================
+# Return (merged old+new)
+# =============================================================================
 
-    Links to an original Sale and tracks returned items, refund method, and status.
-    """
-    # Status choices
-    STATUS_PENDING = 'pending'
-    STATUS_APPROVED = 'approved'
-    STATUS_PROCESSED = 'processed'
-    STATUS_CANCELLED = 'cancelled'
+class Return(HubBaseModel):
+    """A product return linked to an original sale."""
 
     STATUS_CHOICES = [
-        (STATUS_PENDING, _('Pending')),
-        (STATUS_APPROVED, _('Approved')),
-        (STATUS_PROCESSED, _('Processed')),
-        (STATUS_CANCELLED, _('Cancelled')),
+        ('pending', _('Pending')),
+        ('approved', _('Approved')),
+        ('rejected', _('Rejected')),
+        ('completed', _('Completed')),
+        ('cancelled', _('Cancelled')),
     ]
 
-    # Refund method choices
-    REFUND_CASH = 'cash'
-    REFUND_STORE_CREDIT = 'store_credit'
-    REFUND_ORIGINAL_PAYMENT = 'original_payment'
-
-    REFUND_METHODS = [
-        (REFUND_CASH, _('Cash')),
-        (REFUND_STORE_CREDIT, _('Store Credit')),
-        (REFUND_ORIGINAL_PAYMENT, _('Original Payment Method')),
+    REFUND_METHOD_CHOICES = [
+        ('original', _('Original Payment Method')),
+        ('cash', _('Cash')),
+        ('store_credit', _('Store Credit')),
     ]
 
-    # Reference to original sale (UUID to match sales module)
-    sale_id = models.UUIDField(
+    number = models.CharField(
+        _('Return Number'),
+        max_length=50,
+        blank=True,
+        default='',
+    )
+
+    # Real FKs (from new)
+    original_sale = models.ForeignKey(
+        'sales.Sale',
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_("Original Sale ID"),
-        help_text=_("UUID of the original sale")
+        related_name='returns',
+        verbose_name=_('Original Sale'),
     )
-
-    # Return identification
-    return_number = models.CharField(
-        max_length=20,
-        unique=True,
+    customer = models.ForeignKey(
+        'customers.Customer',
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
-        verbose_name=_("Return Number"),
-        help_text=_("Unique identifier for this return")
+        related_name='returns',
+        verbose_name=_('Customer'),
+    )
+    employee = models.ForeignKey(
+        'accounts.LocalUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='processed_returns',
+        verbose_name=_('Processed By'),
     )
 
-    # Status and processing
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default=STATUS_PENDING,
-        verbose_name=_("Status")
-    )
-
-    # Return reason
+    # Return reason (from old — FK to ReturnReason model)
     reason = models.ForeignKey(
         ReturnReason,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_("Return Reason")
+        related_name='returns',
+        verbose_name=_('Return Reason'),
     )
+    reason_notes = models.TextField(_('Reason Notes'), blank=True, default='')
 
-    # Additional notes
-    notes = models.TextField(
-        blank=True,
-        verbose_name=_("Notes"),
-        help_text=_("Additional notes about this return")
+    status = models.CharField(
+        _('Status'),
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
     )
 
     # Financial
     subtotal = models.DecimalField(
+        _('Subtotal'),
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Subtotal"),
-        help_text=_("Subtotal of returned items")
     )
-
     tax_amount = models.DecimalField(
+        _('Tax Amount'),
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Tax Amount"),
-        help_text=_("Tax on returned items")
     )
-
-    total_amount = models.DecimalField(
+    total_refund = models.DecimalField(
+        _('Total Refund'),
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Total Amount"),
-        help_text=_("Total amount to be refunded")
+        validators=[MinValueValidator(Decimal('0.00'))],
     )
 
-    # Refund method
     refund_method = models.CharField(
+        _('Refund Method'),
         max_length=20,
-        choices=REFUND_METHODS,
-        default=REFUND_CASH,
-        verbose_name=_("Refund Method")
+        choices=REFUND_METHOD_CHOICES,
+        default='original',
     )
 
-    # Processing info
-    processed_by = models.CharField(
-        max_length=100,
-        blank=True,
-        verbose_name=_("Processed By"),
-        help_text=_("User who processed the return")
-    )
+    notes = models.TextField(_('Notes'), blank=True, default='')
 
-    processed_at = models.DateTimeField(
+    # Workflow timestamps (from new)
+    approved_by = models.ForeignKey(
+        'accounts.LocalUser',
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_("Processed At")
+        related_name='approved_returns',
+        verbose_name=_('Approved By'),
     )
+    approved_at = models.DateTimeField(_('Approved At'), null=True, blank=True)
+    completed_at = models.DateTimeField(_('Completed At'), null=True, blank=True)
 
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        app_label = 'returns'
+    class Meta(HubBaseModel.Meta):
         db_table = 'returns_return'
-        verbose_name = _("Return")
-        verbose_name_plural = _("Returns")
+        verbose_name = _('Return')
+        verbose_name_plural = _('Returns')
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['return_number']),
+            models.Index(fields=['number']),
             models.Index(fields=['status']),
-            models.Index(fields=['sale_id']),
             models.Index(fields=['-created_at']),
         ]
 
     def __str__(self):
-        return f"Return {self.return_number}"
+        return self.number or f'RET-{str(self.id)[:8]}'
 
     def save(self, *args, **kwargs):
-        if not self.return_number:
-            # Generate return number
-            last = Return.objects.order_by('-id').first()
-            next_id = (last.id + 1) if last else 1
-            self.return_number = f"RET-{next_id:06d}"
+        if not self.number:
+            self.number = self._generate_number()
         super().save(*args, **kwargs)
 
-    def approve(self):
-        """Approve the return."""
-        self.status = self.STATUS_APPROVED
-        self.save()
+    def _generate_number(self):
+        today = timezone.now()
+        prefix = f'RET-{today.strftime("%Y%m%d")}'
+        last = Return.all_objects.filter(
+            hub_id=self.hub_id,
+            number__startswith=prefix,
+        ).order_by('-number').first()
 
-    def process(self, processed_by=''):
-        """Process the return and issue refund."""
-        self.status = self.STATUS_PROCESSED
-        self.processed_by = processed_by
-        self.processed_at = timezone.now()
-        self.save()
+        if last and last.number:
+            try:
+                seq = int(last.number.split('-')[-1]) + 1
+            except (ValueError, IndexError):
+                seq = 1
+        else:
+            seq = 1
+
+        return f'{prefix}-{seq:04d}'
+
+    @property
+    def item_count(self):
+        return self.items.filter(is_deleted=False).count()
+
+    @property
+    def total_quantity(self):
+        return self.items.filter(is_deleted=False).aggregate(
+            total=models.Sum('quantity')
+        )['total'] or 0
+
+    def recalculate_total(self):
+        """Recalculate totals from items."""
+        items = self.items.filter(is_deleted=False)
+        self.subtotal = items.aggregate(
+            total=models.Sum('refund_amount')
+        )['total'] or Decimal('0.00')
+        self.total_refund = self.subtotal
+        self.save(update_fields=['subtotal', 'total_refund', 'updated_at'])
+
+    # Workflow methods (from new)
+    def approve(self, approved_by):
+        self.status = 'approved'
+        self.approved_by = approved_by
+        self.approved_at = timezone.now()
+        self.save(update_fields=['status', 'approved_by', 'approved_at', 'updated_at'])
+
+    def reject(self):
+        self.status = 'rejected'
+        self.save(update_fields=['status', 'updated_at'])
+
+    def complete(self):
+        self.status = 'completed'
+        self.completed_at = timezone.now()
+        self.save(update_fields=['status', 'completed_at', 'updated_at'])
 
     def cancel(self):
-        """Cancel the return."""
-        self.status = self.STATUS_CANCELLED
-        self.save()
+        self.status = 'cancelled'
+        self.save(update_fields=['status', 'updated_at'])
 
 
-class ReturnLine(models.Model):
-    """
-    Individual line item in a return transaction.
+# =============================================================================
+# ReturnItem (from new, replaces old ReturnLine)
+# =============================================================================
 
-    Represents one product being returned from the original sale.
-    """
-    return_order = models.ForeignKey(
+class ReturnItem(HubBaseModel):
+    """Individual item within a return."""
+
+    CONDITION_CHOICES = [
+        ('new', _('New / Unopened')),
+        ('good', _('Good Condition')),
+        ('damaged', _('Damaged')),
+        ('defective', _('Defective')),
+    ]
+
+    return_obj = models.ForeignKey(
         Return,
         on_delete=models.CASCADE,
-        related_name='lines',
-        verbose_name=_("Return")
+        related_name='items',
+        verbose_name=_('Return'),
     )
-
-    # Product reference (UUID to match inventory module)
-    product_id = models.UUIDField(
+    sale_item = models.ForeignKey(
+        'sales.SaleItem',
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_("Product ID"),
-        help_text=_("UUID of the returned product")
+        related_name='return_items',
+        verbose_name=_('Original Sale Item'),
+    )
+    product = models.ForeignKey(
+        'inventory.Product',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='return_items',
+        verbose_name=_('Product'),
     )
 
-    # Product details (snapshot at return time)
+    # Snapshot fields
     product_name = models.CharField(
+        _('Product Name'),
         max_length=255,
-        verbose_name=_("Product Name"),
-        help_text=_("Name at time of return")
+        blank=True,
+        default='',
+        help_text=_('Snapshot of product name at time of return'),
     )
-
     product_sku = models.CharField(
+        _('Product SKU'),
         max_length=100,
         blank=True,
-        verbose_name=_("Product SKU")
+        default='',
     )
 
-    # Quantity and pricing
     quantity = models.PositiveIntegerField(
+        _('Quantity'),
         default=1,
-        verbose_name=_("Quantity Returned"),
-        help_text=_("Number of units being returned")
+        validators=[MinValueValidator(1)],
     )
-
     unit_price = models.DecimalField(
+        _('Unit Price'),
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Unit Price"),
-        help_text=_("Price per unit at time of original sale")
     )
-
-    line_subtotal = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        verbose_name=_("Line Subtotal")
-    )
-
     tax_rate = models.DecimalField(
+        _('Tax Rate %'),
         max_digits=5,
         decimal_places=2,
         default=Decimal('21.00'),
-        verbose_name=_("Tax Rate %")
     )
-
-    line_tax = models.DecimalField(
+    refund_amount = models.DecimalField(
+        _('Refund Amount'),
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Line Tax Amount")
+        validators=[MinValueValidator(Decimal('0.00'))],
     )
-
-    line_total = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        verbose_name=_("Line Total")
-    )
-
-    # Return details
-    CONDITION_CHOICES = [
-        ('new', _('New/Unused')),
-        ('like_new', _('Like New')),
-        ('good', _('Good')),
-        ('fair', _('Fair')),
-        ('damaged', _('Damaged')),
-    ]
 
     condition = models.CharField(
+        _('Condition'),
         max_length=20,
         choices=CONDITION_CHOICES,
         default='good',
-        verbose_name=_("Condition")
     )
+    restock = models.BooleanField(
+        _('Restock Item'),
+        default=True,
+        help_text=_('Return item to inventory stock'),
+    )
+    notes = models.TextField(_('Notes'), blank=True, default='')
 
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        app_label = 'returns'
-        db_table = 'returns_line'
-        verbose_name = _("Return Line")
-        verbose_name_plural = _("Return Lines")
-        ordering = ['return_order', 'id']
+    class Meta(HubBaseModel.Meta):
+        db_table = 'returns_return_item'
+        verbose_name = _('Return Item')
+        verbose_name_plural = _('Return Items')
+        ordering = ['created_at']
 
     def __str__(self):
-        return f"{self.product_name} x{self.quantity}"
-
-    def calculate_totals(self):
-        """Recalculate line totals based on quantity and prices."""
-        self.line_subtotal = self.unit_price * self.quantity
-        self.line_tax = (self.line_subtotal * self.tax_rate) / Decimal('100')
-        self.line_total = self.line_subtotal + self.line_tax
+        return f'{self.product_name} x{self.quantity}'
 
     def save(self, *args, **kwargs):
-        self.calculate_totals()
+        if not self.product_name and self.product:
+            self.product_name = self.product.name
+        if self.refund_amount == Decimal('0.00') and self.unit_price > 0:
+            self.refund_amount = self.unit_price * self.quantity
         super().save(*args, **kwargs)
 
 
-class StoreCredit(models.Model):
-    """
-    Store credit account for customers.
+# =============================================================================
+# StoreCredit (from old — kept, with real FK to Customer)
+# =============================================================================
 
-    Tracks store credit issued via returns or purchased.
-    """
-    # Credit identification
+class StoreCredit(HubBaseModel):
+    """Store credit issued via returns or manually."""
+
     code = models.CharField(
+        _('Credit Code'),
         max_length=20,
         unique=True,
-        verbose_name=_("Credit Code")
     )
 
-    # Customer info (for lookup without customer module)
+    # Real FK to Customer (replacing old string fields)
+    customer = models.ForeignKey(
+        'customers.Customer',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='store_credits',
+        verbose_name=_('Customer'),
+    )
+
+    # Fallback customer info (from old, for when customer module not available)
     customer_name = models.CharField(
+        _('Customer Name'),
         max_length=200,
         blank=True,
-        verbose_name=_("Customer Name")
+        default='',
     )
-
     customer_email = models.EmailField(
+        _('Customer Email'),
         blank=True,
-        verbose_name=_("Customer Email")
+        default='',
     )
-
     customer_phone = models.CharField(
+        _('Customer Phone'),
         max_length=20,
         blank=True,
-        verbose_name=_("Customer Phone")
+        default='',
     )
 
     # Balance
     original_amount = models.DecimalField(
+        _('Original Amount'),
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Original Amount")
     )
-
     current_amount = models.DecimalField(
+        _('Current Balance'),
         max_digits=10,
         decimal_places=2,
         default=Decimal('0.00'),
-        verbose_name=_("Current Balance")
     )
 
-    # Related return (if applicable)
-    return_order = models.OneToOneField(
+    # Related return
+    return_obj = models.OneToOneField(
         Return,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='store_credit',
-        verbose_name=_("Related Return")
+        verbose_name=_('Related Return'),
     )
 
-    # Expiration
-    expires_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name=_("Expires At")
-    )
+    expires_at = models.DateTimeField(_('Expires At'), null=True, blank=True)
+    is_active = models.BooleanField(_('Active'), default=True)
+    notes = models.TextField(_('Notes'), blank=True, default='')
 
-    # Status
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name=_("Active")
-    )
-
-    # Notes
-    notes = models.TextField(
-        blank=True,
-        verbose_name=_("Notes")
-    )
-
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        app_label = 'returns'
+    class Meta(HubBaseModel.Meta):
         db_table = 'returns_store_credit'
-        verbose_name = _("Store Credit")
-        verbose_name_plural = _("Store Credits")
+        verbose_name = _('Store Credit')
+        verbose_name_plural = _('Store Credits')
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['code']),
             models.Index(fields=['is_active']),
-            models.Index(fields=['customer_name']),
         ]
 
     def __str__(self):
-        return f"Credit {self.code} - {self.current_amount}"
+        return f'Credit {self.code} - {self.current_amount}'
+
+    @classmethod
+    def generate_code(cls):
+        return f'SC-{secrets.token_hex(4).upper()}'
 
     def add_credit(self, amount):
-        """Add credit to the account."""
         self.current_amount += amount
-        self.save()
+        self.save(update_fields=['current_amount', 'updated_at'])
 
     def deduct_credit(self, amount):
-        """Deduct credit from the account."""
         if amount > self.current_amount:
-            raise ValueError(_("Insufficient store credit"))
+            raise ValueError(_('Insufficient store credit'))
         self.current_amount -= amount
-        self.save()
+        self.save(update_fields=['current_amount', 'updated_at'])
 
     def is_expired(self):
-        """Check if credit has expired."""
         if not self.expires_at:
             return False
         return timezone.now() > self.expires_at
 
     @property
     def is_valid(self):
-        """Check if credit is valid (active and not expired)."""
         return self.is_active and not self.is_expired() and self.current_amount > 0

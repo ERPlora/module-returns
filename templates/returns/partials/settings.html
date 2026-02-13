@@ -1,109 +1,158 @@
-{% load static i18n ui component_tags %}
+{% load i18n djicons %}
 
-{% component "page"
-    title=_("Returns Settings")
-    subtitle=_("Configure returns module behavior")
-    module_id="returns"
-    tabbar_view="settings" %}
+<div class="p-4">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">{% trans "Returns Settings" %}</h1>
+        <p class="text-sm mt-2 text-muted">{% trans "Configure returns module behavior" %}</p>
+    </div>
 
-    {% fill "content" %}
-        {% csrf_token %}
-
-        <!-- Return Policies Section -->
-        <ion-card class="m-0 mb-4">
-            <ion-card-header>
-                <ion-card-title>{% trans "Return Policies" %}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content class="p-0">
-                <ion-list>
-                    <ion-item>
-                        {% component "toggle"
-                            name="allow_returns"
-                            checked=config.allow_returns
-                            title=_("Allow Returns")
-                            description=_("Enable product returns processing")
-                            hx_post=returns_toggle_url %}
-                        {% endcomponent %}
-                    </ion-item>
-                    <ion-item>
-                        {% component "toggle"
-                            name="require_receipt"
-                            checked=config.require_receipt
-                            color="warning"
-                            title=_("Require Receipt")
-                            description=_("Require original receipt for returns")
-                            hx_post=returns_toggle_url %}
-                        {% endcomponent %}
-                    </ion-item>
-                    <ion-item>
-                        {% component "toggle"
-                            name="allow_store_credit"
-                            checked=config.allow_store_credit
-                            title=_("Allow Store Credit")
-                            description=_("Allow refunds as store credit instead of cash")
-                            hx_post=returns_toggle_url %}
-                        {% endcomponent %}
-                    </ion-item>
-                </ion-list>
-            </ion-card-content>
-        </ion-card>
-
-        <!-- Return Window Section -->
-        <ion-card class="m-0 mb-4">
-            <ion-card-header>
-                <ion-card-title>{% trans "Return Window" %}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content class="p-0">
-                <ion-list>
-                    <ion-item>
-                        {% component "input_field"
-                            name="return_window_days"
-                            type="number"
-                            value=config.return_window_days
-                            min=0
-                            max=365
-                            label=_("Return Window (Days)")
-                            helper_text=_("Number of days after sale to allow returns (0 = unlimited)")
-                            hx_post=returns_input_url %}
-                        {% endcomponent %}
-                    </ion-item>
-                </ion-list>
-            </ion-card-content>
-        </ion-card>
-
-        <!-- Inventory Section -->
-        <ion-card class="m-0 mb-4">
-            <ion-card-header>
-                <ion-card-title>{% trans "Inventory" %}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content class="p-0">
-                <ion-list>
-                    <ion-item>
-                        {% component "toggle"
-                            name="auto_restore_stock"
-                            checked=config.auto_restore_stock
-                            title=_("Auto Restore Stock")
-                            description=_("Automatically restore inventory when return is processed")
-                            hx_post=returns_toggle_url %}
-                        {% endcomponent %}
-                    </ion-item>
-                </ion-list>
-            </ion-card-content>
-        </ion-card>
-
-        <!-- Reset Button -->
-        <div class="mt-lg pt-md" style="border-top: 1px solid var(--border-color);">
-            <ion-button
-                color="medium"
-                fill="outline"
-                expand="block"
-                hx-post="{% url 'returns:settings_reset' %}"
-                hx-include="[name='csrfmiddlewaretoken']"
-                hx-swap="none"
-                hx-confirm="{% trans 'Reset all settings to defaults?' %}">
-                <ion-icon slot="start" name="refresh-outline"></ion-icon>
-                {% trans "Reset to Defaults" %}
-            </ion-button>
+    <!-- Return Policies -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">{% icon "shield-outline" css_class="text-primary" %} {% trans "Return Policies" %}</h3>
         </div>
-    {% endfill %}
-{% endcomponent %}
+        <div class="list">
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Allow Returns" %}</div>
+                    <div class="list-item-note">{% trans "Enable product returns processing" %}</div>
+                </div>
+                <div class="list-item-end">
+                    <label class="toggle">
+                        <input type="checkbox" name="allow_returns"
+                               {% if settings.allow_returns %}checked{% endif %}
+                               hx-post="{% url 'returns:settings' %}"
+                               hx-vals='js:{name: "allow_returns", value: event.target.checked ? "true" : "false"}'
+                               hx-swap="none">
+                        
+                    </label>
+                </div>
+            </div>
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Require Receipt" %}</div>
+                    <div class="list-item-note">{% trans "Require original receipt for returns" %}</div>
+                </div>
+                <div class="list-item-end">
+                    <label class="toggle">
+                        <input type="checkbox" name="require_receipt"
+                               {% if settings.require_receipt %}checked{% endif %}
+                               hx-post="{% url 'returns:settings' %}"
+                               hx-vals='js:{name: "require_receipt", value: event.target.checked ? "true" : "false"}'
+                               hx-swap="none">
+                        
+                    </label>
+                </div>
+            </div>
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Allow Store Credit" %}</div>
+                    <div class="list-item-note">{% trans "Allow refunds as store credit instead of cash" %}</div>
+                </div>
+                <div class="list-item-end">
+                    <label class="toggle">
+                        <input type="checkbox" name="allow_store_credit"
+                               {% if settings.allow_store_credit %}checked{% endif %}
+                               hx-post="{% url 'returns:settings' %}"
+                               hx-vals='js:{name: "allow_store_credit", value: event.target.checked ? "true" : "false"}'
+                               hx-swap="none">
+                        
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Window -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">{% icon "time-outline" css_class="text-warning" %} {% trans "Return Window" %}</h3>
+        </div>
+        <div class="list">
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Return Window (Days)" %}</div>
+                    <div class="list-item-note">{% trans "Number of days after sale to allow returns (0 = unlimited)" %}</div>
+                </div>
+                <div class="list-item-end">
+                    <input type="number" name="return_window_days"
+                           value="{{ settings.return_window_days }}"
+                           class="input input--sm"
+                           style="width: 80px;"
+                           hx-post="{% url 'returns:settings' %}"
+                           hx-vals='js:{name: "return_window_days", value: event.target.value}'
+                           hx-trigger="change"
+                           hx-swap="none"
+                           min="0" max="365">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">{% icon "cube-outline" css_class="text-success" %} {% trans "Inventory" %}</h3>
+        </div>
+        <div class="list">
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Auto Restore Stock" %}</div>
+                    <div class="list-item-note">{% trans "Automatically restore inventory when return is processed" %}</div>
+                </div>
+                <div class="list-item-end">
+                    <label class="toggle">
+                        <input type="checkbox" name="auto_restore_stock"
+                               {% if settings.auto_restore_stock %}checked{% endif %}
+                               hx-post="{% url 'returns:settings' %}"
+                               hx-vals='js:{name: "auto_restore_stock", value: event.target.checked ? "true" : "false"}'
+                               hx-swap="none">
+                        
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">{% icon "link-outline" %} {% trans "Quick Actions" %}</h3>
+        </div>
+        <div class="list">
+            <a hx-get="{% url 'returns:reasons' %}"
+               hx-target="#main-content-area"
+               hx-push-url="true"
+               class="list-item list-item-clickable">
+                <div class="list-item-start">{% icon "list-outline" css_class="text-primary" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Return Reasons" %}</div>
+                    <div class="list-item-note">{% trans "Manage predefined return reasons" %}</div>
+                </div>
+                <div class="list-item-end">{% icon "chevron-forward-outline" css_class="text-muted" %}</div>
+            </a>
+            <a hx-get="{% url 'returns:credits' %}"
+               hx-target="#main-content-area"
+               hx-push-url="true"
+               class="list-item list-item-clickable">
+                <div class="list-item-start">{% icon "card-outline" css_class="text-success" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Store Credits" %}</div>
+                    <div class="list-item-note">{% trans "View and manage store credits" %}</div>
+                </div>
+                <div class="list-item-end">{% icon "chevron-forward-outline" css_class="text-muted" %}</div>
+            </a>
+            <a hx-get="{% url 'returns:refunds' %}"
+               hx-target="#main-content-area"
+               hx-push-url="true"
+               class="list-item list-item-clickable">
+                <div class="list-item-start">{% icon "cash-outline" css_class="text-error" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Refunds History" %}</div>
+                    <div class="list-item-note">{% trans "View completed refunds" %}</div>
+                </div>
+                <div class="list-item-end">{% icon "chevron-forward-outline" css_class="text-muted" %}</div>
+            </a>
+        </div>
+    </div>
+</div>

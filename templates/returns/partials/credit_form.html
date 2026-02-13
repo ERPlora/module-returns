@@ -1,99 +1,73 @@
-{% load i18n component_tags %}
+{% load i18n djicons %}
 
-{% component "page"
-    title=_("Issue Store Credit")
-    module_id="returns"
-    tabbar_view="credits"
-    hide_tabbar=True
-    back_url="returns:credit_list" %}
+<div class="p-4">
+    <!-- Back Button -->
+    <button class="btn btn-ghost btn-sm mb-4"
+        hx-get="{% url 'returns:credits' %}"
+        hx-target="#main-content-area"
+        hx-push-url="true">
+        {% icon "arrow-back-outline" css_class="mr-1" %}
+        {% trans "Back to Credits" %}
+    </button>
 
-    {% fill "content" %}
-        <ion-card>
-            <ion-card-content>
-                <form method="post"
-                    hx-post="{% url 'returns:credit_create' %}"
-                    hx-target="#main-content-area">
-                    {% csrf_token %}
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">{% trans "Issue Store Credit" %}</h1>
+    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Amount -->
-                        <div>
-                            <ion-label class="text-sm text-gray-600">{% trans "Amount" %} *</ion-label>
-                            <ion-input
-                                type="number"
-                                name="amount"
-                                value="{{ form_data.amount|default:'0.00' }}"
-                                step="0.01"
-                                min="0.01"
-                                required
-                                placeholder="0.00"
-                                class="mt-1">
-                            </ion-input>
-                        </div>
+    {% if error %}
+    <div class="card mb-4" style="border-color: var(--color-error)">
+        <div class="card-body">
+            <div class="text-error text-sm">{{ error }}</div>
+        </div>
+    </div>
+    {% endif %}
 
-                        <!-- Customer Name -->
-                        <div>
-                            <ion-label class="text-sm text-gray-600">{% trans "Customer Name" %}</ion-label>
-                            <ion-input
-                                name="customer_name"
-                                value="{{ form_data.customer_name }}"
-                                placeholder="{% trans 'Optional' %}"
-                                class="mt-1">
-                            </ion-input>
-                        </div>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
 
-                        <!-- Customer Email -->
-                        <div>
-                            <ion-label class="text-sm text-gray-600">{% trans "Customer Email" %}</ion-label>
-                            <ion-input
-                                type="email"
-                                name="customer_email"
-                                value="{{ form_data.customer_email }}"
-                                placeholder="{% trans 'Optional' %}"
-                                class="mt-1">
-                            </ion-input>
-                        </div>
-
-                        <!-- Customer Phone -->
-                        <div>
-                            <ion-label class="text-sm text-gray-600">{% trans "Customer Phone" %}</ion-label>
-                            <ion-input
-                                type="tel"
-                                name="customer_phone"
-                                value="{{ form_data.customer_phone }}"
-                                placeholder="{% trans 'Optional' %}"
-                                class="mt-1">
-                            </ion-input>
-                        </div>
-
-                        <!-- Notes -->
-                        <div class="md:col-span-2">
-                            <ion-label class="text-sm text-gray-600">{% trans "Notes" %}</ion-label>
-                            <ion-textarea
-                                name="notes"
-                                placeholder="{% trans 'Reason for issuing this credit' %}"
-                                rows="3"
-                                class="mt-1">{{ form_data.notes }}</ion-textarea>
-                        </div>
+        <!-- Credit Info -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">{% trans "Credit Details" %}</h3>
+            </div>
+            <div class="card-body space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">{% trans "Amount" %} *</label>
+                        <input type="number" name="amount"
+                            value="{{ form_data.amount|default:'0.00' }}"
+                            step="0.01" min="0.01" required
+                            placeholder="0.00"
+                            class="input w-full">
                     </div>
-
-                    <!-- Actions -->
-                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
-                        <ion-button
-                            fill="outline"
-                            color="medium"
-                            hx-get="{% url 'returns:credit_list' %}"
-                            hx-target="#main-content-area"
-                            hx-push-url="true">
-                            {% trans "Cancel" %}
-                        </ion-button>
-                        <ion-button type="submit">
-                            <ion-icon slot="start" name="checkmark"></ion-icon>
-                            {% trans "Issue Credit" %}
-                        </ion-button>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">{% trans "Customer Name" %}</label>
+                        <input type="text" name="customer_name"
+                            value="{{ form_data.customer_name|default:'' }}"
+                            placeholder="{% trans 'Optional' %}"
+                            class="input w-full">
                     </div>
-                </form>
-            </ion-card-content>
-        </ion-card>
-    {% endfill %}
-{% endcomponent %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">{% trans "Notes" %}</label>
+                    <textarea name="notes" class="textarea w-full" rows="3"
+                        placeholder="{% trans 'Reason for issuing this credit' %}">{{ form_data.notes|default:'' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex gap-3">
+            <button type="button" class="btn btn-outline flex-1"
+                hx-get="{% url 'returns:credits' %}"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                {% trans "Cancel" %}
+            </button>
+            <button type="submit" class="btn color-primary flex-1">
+                {% icon "save-outline" css_class="mr-2" %}
+                {% trans "Issue Credit" %}
+            </button>
+        </div>
+    </form>
+</div>

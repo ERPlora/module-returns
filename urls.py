@@ -1,45 +1,45 @@
-"""
-Returns & Refunds Module URL Configuration
-"""
-
 from django.urls import path
+
 from . import views
 
 app_name = 'returns'
 
 urlpatterns = [
     # Dashboard
-    path('', views.dashboard, name='dashboard'),
+    path('', views.index, name='index'),
 
-    # Returns
-    path('returns/', views.return_list, name='return_list'),
-    path('returns/create/', views.return_create, name='return_create'),
-    path('returns/<int:pk>/', views.return_detail, name='return_detail'),
-    path('returns/<int:pk>/edit/', views.return_edit, name='return_edit'),
-    path('returns/<int:pk>/approve/', views.return_approve, name='return_approve'),
-    path('returns/<int:pk>/process/', views.return_process, name='return_process'),
-    path('returns/<int:pk>/cancel/', views.return_cancel, name='return_cancel'),
+    # Return list
+    path('list/', views.return_list, name='return_list'),
 
-    # Return Lines
-    path('returns/<int:pk>/lines/add/', views.line_add, name='line_add'),
-    path('returns/<int:pk>/lines/<int:line_pk>/remove/', views.line_remove, name='line_remove'),
+    # Return CRUD
+    path('add/', views.return_add, name='return_add'),
+    path('<uuid:return_id>/', views.return_detail, name='return_detail'),
+    path('<uuid:return_id>/edit/', views.return_edit, name='return_edit'),
+    path('<uuid:return_id>/delete/', views.return_delete, name='return_delete'),
 
-    # Return Reasons
-    path('reasons/', views.reason_list, name='reason_list'),
-    path('reasons/create/', views.reason_create, name='reason_create'),
-    path('reasons/<int:pk>/edit/', views.reason_edit, name='reason_edit'),
-    path('reasons/<int:pk>/delete/', views.reason_delete, name='reason_delete'),
+    # Return actions
+    path('<uuid:return_id>/approve/', views.return_approve, name='return_approve'),
+    path('<uuid:return_id>/reject/', views.return_reject, name='return_reject'),
+    path('<uuid:return_id>/complete/', views.return_complete, name='return_complete'),
 
-    # Store Credits
-    path('credits/', views.credit_list, name='credit_list'),
-    path('credits/create/', views.credit_create, name='credit_create'),
-    path('credits/<int:pk>/', views.credit_detail, name='credit_detail'),
+    # Return items
+    path('<uuid:return_id>/items/add/', views.item_add, name='item_add'),
+    path('<uuid:return_id>/items/<uuid:item_id>/delete/', views.item_delete, name='item_delete'),
+
+    # Reasons
+    path('reasons/', views.reasons, name='reasons'),
+    path('reasons/add/', views.reason_add, name='reason_add'),
+    path('reasons/<uuid:reason_id>/edit/', views.reason_edit, name='reason_edit'),
+    path('reasons/<uuid:reason_id>/delete/', views.reason_delete, name='reason_delete'),
+
+    # Store credits
+    path('credits/', views.credits, name='credits'),
+    path('credits/add/', views.credit_add, name='credit_add'),
     path('credits/lookup/', views.credit_lookup, name='credit_lookup'),
+
+    # Refunds (completed returns view)
+    path('refunds/', views.refunds, name='refunds'),
 
     # Settings
     path('settings/', views.settings_view, name='settings'),
-    path('settings/save/', views.settings_save, name='settings_save'),
-    path('settings/toggle/', views.settings_toggle, name='settings_toggle'),
-    path('settings/input/', views.settings_input, name='settings_input'),
-    path('settings/reset/', views.settings_reset, name='settings_reset'),
 ]

@@ -1,135 +1,158 @@
-{% load i18n component_tags %}
+{% load i18n djicons %}
 
-{% component "page"
-    title=_("Returns")
-    subtitle=_("All return transactions")
-    module_id="returns"
-    tabbar_view="returns" %}
-
-    {% fill "header_actions" %}
-        <ion-button
-            hx-get="{% url 'returns:return_create' %}"
-            hx-target="#main-content-area"
-            hx-push-url="true">
-            <ion-icon slot="start" name="add"></ion-icon>
-            {% trans "New Return" %}
-        </ion-button>
-    {% endfill %}
-
-    {% fill "content" %}
-        <!-- Filters -->
-        <ion-card class="mb-4">
-            <ion-card-content>
-                <div class="flex flex-wrap gap-2">
-                    <ion-button
-                        fill="{% if not status_filter %}solid{% else %}outline{% endif %}"
-                        size="small"
-                        hx-get="{% url 'returns:return_list' %}"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        {% trans "All" %}
-                    </ion-button>
-                    <ion-button
-                        fill="{% if status_filter == 'pending' %}solid{% else %}outline{% endif %}"
-                        size="small"
-                        color="warning"
-                        hx-get="{% url 'returns:return_list' %}?status=pending"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        {% trans "Pending" %}
-                    </ion-button>
-                    <ion-button
-                        fill="{% if status_filter == 'approved' %}solid{% else %}outline{% endif %}"
-                        size="small"
-                        color="primary"
-                        hx-get="{% url 'returns:return_list' %}?status=approved"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        {% trans "Approved" %}
-                    </ion-button>
-                    <ion-button
-                        fill="{% if status_filter == 'processed' %}solid{% else %}outline{% endif %}"
-                        size="small"
-                        color="success"
-                        hx-get="{% url 'returns:return_list' %}?status=processed"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        {% trans "Processed" %}
-                    </ion-button>
-                </div>
-            </ion-card-content>
-        </ion-card>
-
-        <!-- Returns List -->
-        <ion-card>
-            <ion-card-content class="p-0">
-                {% if returns %}
-                <ion-list>
-                    {% for return in returns %}
-                    <ion-item
-                        button
-                        hx-get="{% url 'returns:return_detail' pk=return.pk %}"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        <ion-label>
-                            <h2 class="font-medium">{{ return.return_number }}</h2>
-                            <p class="text-sm text-gray-500">
-                                {{ return.created_at|date:"d/m/Y H:i" }}
-                                {% if return.reason %} - {{ return.reason.name }}{% endif %}
-                            </p>
-                        </ion-label>
-                        <ion-badge slot="end"
-                            {% if return.status == 'pending' %}color="warning"{% endif %}
-                            {% if return.status == 'approved' %}color="primary"{% endif %}
-                            {% if return.status == 'processed' %}color="success"{% endif %}
-                            {% if return.status == 'cancelled' %}color="medium"{% endif %}>
-                            {{ return.get_status_display }}
-                        </ion-badge>
-                        <ion-note slot="end" class="ml-2 font-medium">{{ return.total_amount }} &euro;</ion-note>
-                    </ion-item>
-                    {% endfor %}
-                </ion-list>
-
-                <!-- Pagination -->
-                {% if returns.has_other_pages %}
-                <div class="flex justify-center gap-2 p-4 border-t">
-                    {% if returns.has_previous %}
-                    <ion-button
-                        fill="outline"
-                        size="small"
-                        hx-get="{% url 'returns:return_list' %}?page={{ returns.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-                        hx-target="#main-content-area">
-                        <ion-icon name="chevron-back"></ion-icon>
-                    </ion-button>
-                    {% endif %}
-                    <span class="flex items-center px-3">
-                        {{ returns.number }} / {{ returns.paginator.num_pages }}
-                    </span>
-                    {% if returns.has_next %}
-                    <ion-button
-                        fill="outline"
-                        size="small"
-                        hx-get="{% url 'returns:return_list' %}?page={{ returns.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-                        hx-target="#main-content-area">
-                        <ion-icon name="chevron-forward"></ion-icon>
-                    </ion-button>
-                    {% endif %}
-                </div>
-                {% endif %}
+<div class="p-4">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                {% if refunds %}
+                <h1 class="text-3xl font-bold">{% trans "Refunds" %}</h1>
+                <p class="text-sm mt-2 text-muted">{% trans "Completed refund transactions" %}{% if refund_count %} &middot; {{ refund_count }} {% trans "refunds" %} &middot; {{ total_refunded }} {% trans "total" %}{% endif %}</p>
                 {% else %}
-                <div class="text-center py-12 text-gray-500">
-                    <ion-icon name="return-down-back-outline" class="text-5xl mb-4"></ion-icon>
-                    <p class="mb-4">{% trans "No returns found" %}</p>
-                    <ion-button
-                        hx-get="{% url 'returns:return_create' %}"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        <ion-icon slot="start" name="add"></ion-icon>
-                        {% trans "Create First Return" %}
-                    </ion-button>
-                </div>
+                <h1 class="text-3xl font-bold">{% trans "Returns" %}</h1>
+                <p class="text-sm mt-2 text-muted">{% trans "All return transactions" %}</p>
                 {% endif %}
-            </ion-card-content>
-        </ion-card>
-    {% endfill %}
-{% endcomponent %}
+            </div>
+            {% if not refunds %}
+            <button class="btn color-primary"
+                hx-get="{% url 'returns:return_add' %}"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                {% icon "add-outline" css_class="mr-2" %}
+                {% trans "New Return" %}
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filters (only for returns list, not refunds) -->
+    {% if not refunds %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="input-group">
+                    <span class="input-group__icon">
+                        {% icon "search-outline" %}
+                    </span>
+                    <input type="text" name="q" value="{{ search_query }}"
+                        placeholder="{% trans 'Search by number, customer...' %}"
+                        class="input"
+                        hx-get="{% url 'returns:return_list' %}"
+                        hx-trigger="keyup changed delay:400ms"
+                        hx-target="#main-content-area"
+                        hx-include="[name='status'],[name='refund_method']"
+                        hx-push-url="true">
+                </div>
+
+                <select name="status" class="select"
+                    hx-get="{% url 'returns:return_list' %}"
+                    hx-trigger="change"
+                    hx-target="#main-content-area"
+                    hx-include="[name='q'],[name='refund_method']"
+                    hx-push-url="true">
+                    <option value="">{% trans "All Status" %}</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>{% trans "Pending" %}</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>{% trans "Rejected" %}</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>{% trans "Completed" %}</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+                </select>
+
+                <select name="refund_method" class="select"
+                    hx-get="{% url 'returns:return_list' %}"
+                    hx-trigger="change"
+                    hx-target="#main-content-area"
+                    hx-include="[name='q'],[name='status']"
+                    hx-push-url="true">
+                    <option value="">{% trans "All Methods" %}</option>
+                    <option value="original" {% if method_filter == 'original' %}selected{% endif %}>{% trans "Original Payment" %}</option>
+                    <option value="cash" {% if method_filter == 'cash' %}selected{% endif %}>{% trans "Cash" %}</option>
+                    <option value="store_credit" {% if method_filter == 'store_credit' %}selected{% endif %}>{% trans "Store Credit" %}</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Search for refunds -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="input-group">
+                <span class="input-group__icon">
+                    {% icon "search-outline" %}
+                </span>
+                <input type="text" name="q" value="{{ search_query }}"
+                    placeholder="{% trans 'Search by number, customer...' %}"
+                    class="input"
+                    hx-get="{% url 'returns:refunds' %}"
+                    hx-trigger="keyup changed delay:400ms"
+                    hx-target="#main-content-area"
+                    hx-push-url="true">
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- List -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% with items=refunds|default:returns %}
+            {% if items %}
+            <div class="list">
+                {% for ret in items %}
+                <a hx-get="{% url 'returns:return_detail' ret.id %}"
+                   hx-target="#main-content-area"
+                   hx-push-url="true"
+                   class="list-item list-item-clickable">
+                    <div class="list-item-start">
+                        <div class="w-10 h-10 {% if refunds %}bg-success/10{% else %}bg-primary/10{% endif %} rounded-lg flex items-center justify-center">
+                            {% if refunds %}
+                            {% icon "cash-outline" css_class="text-xl text-success" %}
+                            {% else %}
+                            {% icon "return-down-back-outline" css_class="text-xl text-primary" %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="list-item-content">
+                        <div class="list-item-label">
+                            {{ ret.number }}
+                            {% if ret.customer %}<span class="text-muted font-normal ml-1">&middot; {{ ret.customer.name }}</span>{% endif %}
+                        </div>
+                        <div class="list-item-note">
+                            {% if refunds %}{{ ret.completed_at|date:"d/m/Y H:i" }}{% else %}{{ ret.created_at|date:"d/m/Y H:i" }}{% endif %}
+                            {% if ret.reason %} &middot; {{ ret.reason.name }}{% endif %}
+                            {% if ret.employee %} &middot; {{ ret.employee.name }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="list-item-end text-right">
+                        {% if not refunds %}
+                        <span class="badge color-{% if ret.status == 'pending' %}warning{% elif ret.status == 'approved' %}primary{% elif ret.status == 'completed' %}success{% elif ret.status == 'rejected' %}error{% else %}medium{% endif %}">
+                            {{ ret.get_status_display }}
+                        </span>
+                        {% endif %}
+                        <div class="text-sm font-semibold {% if refunds %}text-success{% endif %} mt-1">{{ ret.total_refund }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12 text-muted">
+                {% if refunds %}
+                {% icon "cash-outline" css_class="text-5xl block mx-auto mb-2" %}
+                <p class="mt-2">{% trans "No refunds found" %}</p>
+                {% else %}
+                {% icon "return-down-back-outline" css_class="text-5xl block mx-auto mb-2" %}
+                <p class="mt-2">{% trans "No returns found" %}</p>
+                <button class="btn btn-sm color-primary mt-3"
+                    hx-get="{% url 'returns:return_add' %}"
+                    hx-target="#main-content-area"
+                    hx-push-url="true">
+                    {% icon "add-outline" css_class="mr-1" %}
+                    {% trans "Create First Return" %}
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</div>

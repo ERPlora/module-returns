@@ -1,72 +1,69 @@
-{% load i18n component_tags %}
+{% load i18n djicons %}
 
-{% component "page"
-    title=_("Return Reasons")
-    subtitle=_("Predefined reasons for returns")
-    module_id="returns"
-    tabbar_view="settings"
-    back_url="returns:settings" %}
+<div class="p-4">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold">{% trans "Return Reasons" %}</h1>
+                <p class="text-sm mt-2 text-muted">{% trans "Predefined reasons for product returns" %}</p>
+            </div>
+            <button class="btn color-primary"
+                hx-get="{% url 'returns:reason_add' %}"
+                hx-target="#main-content-area"
+                hx-push-url="true">
+                {% icon "add-outline" css_class="mr-2" %}
+                {% trans "Add Reason" %}
+            </button>
+        </div>
+    </div>
 
-    {% fill "header_actions" %}
-        <ion-button
-            hx-get="{% url 'returns:reason_create' %}"
-            hx-target="#main-content-area"
-            hx-push-url="true">
-            <ion-icon slot="start" name="add"></ion-icon>
-            {% trans "Add Reason" %}
-        </ion-button>
-    {% endfill %}
-
-    {% fill "content" %}
-        <!-- Reasons List -->
-        <ion-card>
-            <ion-card-content class="p-0">
-                {% if reasons %}
-                <ion-list>
-                    {% for reason in reasons %}
-                    <ion-item>
-                        <ion-label>
-                            <h2 class="font-medium">{{ reason.name }}</h2>
-                            <p class="text-sm text-gray-500">
-                                {% if reason.description %}{{ reason.description }}{% endif %}
-                            </p>
-                            <p class="text-xs text-gray-400 mt-1">
-                                {% if reason.restocks_inventory %}
-                                <ion-badge color="success" class="mr-1">{% trans "Restocks" %}</ion-badge>
-                                {% endif %}
-                                {% if reason.requires_note %}
-                                <ion-badge color="warning" class="mr-1">{% trans "Note Required" %}</ion-badge>
-                                {% endif %}
-                            </p>
-                        </ion-label>
-                        <ion-badge slot="end" color="{% if reason.is_active %}success{% else %}medium{% endif %}">
-                            {% if reason.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
-                        </ion-badge>
-                        <ion-button
-                            slot="end"
-                            fill="clear"
-                            hx-get="{% url 'returns:reason_edit' pk=reason.pk %}"
-                            hx-target="#main-content-area"
-                            hx-push-url="true">
-                            <ion-icon slot="icon-only" name="create-outline"></ion-icon>
-                        </ion-button>
-                    </ion-item>
-                    {% endfor %}
-                </ion-list>
-                {% else %}
-                <div class="text-center py-12 text-gray-500">
-                    <ion-icon name="list-outline" class="text-5xl mb-4"></ion-icon>
-                    <p class="mb-4">{% trans "No return reasons defined" %}</p>
-                    <ion-button
-                        hx-get="{% url 'returns:reason_create' %}"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        <ion-icon slot="start" name="add"></ion-icon>
-                        {% trans "Add First Reason" %}
-                    </ion-button>
-                </div>
-                {% endif %}
-            </ion-card-content>
-        </ion-card>
-    {% endfill %}
-{% endcomponent %}
+    <!-- Reasons List -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% if reasons %}
+            <div class="list">
+                {% for reason in reasons %}
+                <a hx-get="{% url 'returns:reason_edit' reason.id %}"
+                   hx-target="#main-content-area"
+                   hx-push-url="true"
+                   class="list-item list-item-clickable">
+                    <div class="list-item-start">
+                        <div class="w-10 h-10 {% if reason.is_active %}bg-success/10{% else %}bg-gray-100{% endif %} rounded-lg flex items-center justify-center">
+                            {% icon "help-circle-outline" css_class="text-xl {% if reason.is_active %}text-success{% else %}text-muted{% endif %}" %}
+                        </div>
+                    </div>
+                    <div class="list-item-content">
+                        <div class="list-item-label">
+                            {{ reason.name }}
+                            {% if not reason.is_active %}<span class="badge badge-sm  ml-2">{% trans "Inactive" %}</span>{% endif %}
+                        </div>
+                        <div class="list-item-note">
+                            {% if reason.description %}{{ reason.description }}{% endif %}
+                            {% if reason.restocks_inventory %}<span class="badge badge-sm color-success ml-1">{% trans "Restocks" %}</span>{% endif %}
+                            {% if reason.requires_note %}<span class="badge badge-sm color-warning ml-1">{% trans "Note Required" %}</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="list-item-end">
+                        <span class="text-muted text-sm mr-2">#{{ reason.sort_order }}</span>
+                        {% icon "chevron-forward-outline" css_class="text-muted" %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12 text-muted">
+                {% icon "list-outline" css_class="text-5xl block mx-auto mb-2" %}
+                <p class="mt-2">{% trans "No return reasons defined" %}</p>
+                <button class="btn btn-sm color-primary mt-3"
+                    hx-get="{% url 'returns:reason_add' %}"
+                    hx-target="#main-content-area"
+                    hx-push-url="true">
+                    {% icon "add-outline" css_class="mr-1" %}
+                    {% trans "Add First Reason" %}
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -1,255 +1,270 @@
-{% load i18n component_tags %}
+{% load i18n djicons %}
 
-{% component "page"
-    title=return_order.return_number
-    subtitle=return_order.created_at|date:"d/m/Y H:i"
-    module_id="returns"
-    tabbar_view="returns"
-    hide_tabbar=True
-    back_url="returns:return_list" %}
+<div class="p-4">
+    <!-- Back Button -->
+    <button type="button"
+            hx-get="{% url 'returns:return_list' %}"
+            hx-target="#main-content-area"
+            hx-push-url="true"
+            class="btn btn-ghost mb-3">
+        {% icon "arrow-back-outline" %}
+        {% trans "Back to Returns" %}
+    </button>
 
-    {% fill "header_actions" %}
-        <ion-badge
-            {% if return_order.status == 'pending' %}color="warning"{% endif %}
-            {% if return_order.status == 'approved' %}color="primary"{% endif %}
-            {% if return_order.status == 'processed' %}color="success"{% endif %}
-            {% if return_order.status == 'cancelled' %}color="medium"{% endif %}>
-            {{ return_order.get_status_display }}
-        </ion-badge>
-    {% endfill %}
-
-    {% fill "content" %}
-        <!-- Return Info -->
-        <ion-card class="mb-4">
-            <ion-card-content>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div>
-                        <div class="text-2xl font-bold text-gray-800">{{ return_order.subtotal }} &euro;</div>
-                        <div class="text-sm text-gray-500">{% trans "Subtotal" %}</div>
-                    </div>
-                    <div>
-                        <div class="text-2xl font-bold text-gray-800">{{ return_order.tax_amount }} &euro;</div>
-                        <div class="text-sm text-gray-500">{% trans "Tax" %}</div>
-                    </div>
-                    <div>
-                        <div class="text-2xl font-bold text-red-600">{{ return_order.total_amount }} &euro;</div>
-                        <div class="text-sm text-gray-500">{% trans "Total Refund" %}</div>
-                    </div>
-                    <div>
-                        <div class="text-2xl font-bold text-gray-800">{{ return_order.get_refund_method_display }}</div>
-                        <div class="text-sm text-gray-500">{% trans "Method" %}</div>
-                    </div>
+    <!-- Header Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="card-title">{{ return_obj.number }}</h2>
+                    <p class="text-sm opacity-60">{{ return_obj.created_at|date:"d/m/Y H:i" }}</p>
                 </div>
-            </ion-card-content>
-        </ion-card>
-
-        <!-- Details -->
-        <ion-card class="mb-4">
-            <ion-card-header>
-                <ion-card-title>{% trans "Details" %}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-                <ion-list>
-                    {% if return_order.sale_id %}
-                    <ion-item>
-                        <ion-label>{% trans "Original Sale" %}</ion-label>
-                        <ion-note slot="end">{{ return_order.sale_id }}</ion-note>
-                    </ion-item>
-                    {% endif %}
-                    {% if return_order.reason %}
-                    <ion-item>
-                        <ion-label>{% trans "Reason" %}</ion-label>
-                        <ion-note slot="end">{{ return_order.reason.name }}</ion-note>
-                    </ion-item>
-                    {% endif %}
-                    {% if return_order.notes %}
-                    <ion-item>
-                        <ion-label class="ion-text-wrap">
-                            <h3>{% trans "Notes" %}</h3>
-                            <p>{{ return_order.notes }}</p>
-                        </ion-label>
-                    </ion-item>
-                    {% endif %}
-                    {% if return_order.processed_by %}
-                    <ion-item>
-                        <ion-label>{% trans "Processed By" %}</ion-label>
-                        <ion-note slot="end">{{ return_order.processed_by }}</ion-note>
-                    </ion-item>
-                    {% endif %}
-                    {% if return_order.processed_at %}
-                    <ion-item>
-                        <ion-label>{% trans "Processed At" %}</ion-label>
-                        <ion-note slot="end">{{ return_order.processed_at|date:"d/m/Y H:i" }}</ion-note>
-                    </ion-item>
-                    {% endif %}
-                </ion-list>
-            </ion-card-content>
-        </ion-card>
-
-        <!-- Items -->
-        <ion-card class="mb-4">
-            <ion-card-header>
-                <div class="flex justify-between items-center">
-                    <ion-card-title>{% trans "Items" %}</ion-card-title>
-                    {% if return_order.status == 'pending' %}
-                    <ion-button
-                        size="small"
-                        id="add-item-trigger">
-                        <ion-icon slot="start" name="add"></ion-icon>
-                        {% trans "Add Item" %}
-                    </ion-button>
-                    {% endif %}
+                <span class="badge badge-lg color-{% if return_obj.status == 'pending' %}warning{% elif return_obj.status == 'approved' %}primary{% elif return_obj.status == 'completed' %}success{% elif return_obj.status == 'rejected' %}error{% else %}medium{% endif %}" id="return-status-badge">
+                    {{ return_obj.get_status_display }}
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Stats row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold">{{ return_obj.subtotal }}</div>
+                    <div class="text-xs text-muted">{% trans "Subtotal" %}</div>
                 </div>
-            </ion-card-header>
-            <ion-card-content class="p-0">
-                {% if lines %}
-                <ion-list>
-                    {% for line in lines %}
-                    <ion-item>
-                        <ion-label>
-                            <h2>{{ line.product_name }}</h2>
-                            <p class="text-sm text-gray-500">
-                                {% if line.product_sku %}SKU: {{ line.product_sku }} | {% endif %}
-                                {% trans "Qty:" %} {{ line.quantity }} |
-                                {% trans "Condition:" %} {{ line.get_condition_display }}
-                            </p>
-                        </ion-label>
-                        <ion-note slot="end" class="font-medium">{{ line.line_total }} &euro;</ion-note>
-                        {% if return_order.status == 'pending' %}
-                        <form method="post" hx-post="{% url 'returns:line_remove' pk=return_order.pk line_pk=line.pk %}">
-                            {% csrf_token %}
-                            <ion-button slot="end" fill="clear" color="danger" type="submit">
-                                <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
-                            </ion-button>
-                        </form>
-                        {% endif %}
-                    </ion-item>
-                    {% endfor %}
-                </ion-list>
-                {% else %}
-                <div class="text-center py-8 text-gray-500">
-                    <ion-icon name="cube-outline" class="text-4xl mb-2"></ion-icon>
-                    <p>{% trans "No items added yet" %}</p>
+                <div class="text-center">
+                    <div class="text-2xl font-bold">{{ return_obj.tax_amount }}</div>
+                    <div class="text-xs text-muted">{% trans "Tax" %}</div>
                 </div>
-                {% endif %}
-            </ion-card-content>
-        </ion-card>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-error">{{ return_obj.total_refund }}</div>
+                    <div class="text-xs text-muted">{% trans "Total Refund" %}</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold">{{ return_obj.get_refund_method_display }}</div>
+                    <div class="text-xs text-muted">{% trans "Method" %}</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <!-- Add Item Modal -->
-        {% if return_order.status == 'pending' %}
-        <ion-modal trigger="add-item-trigger">
-            <ion-header>
-                <ion-toolbar>
-                    <ion-title>{% trans "Add Item" %}</ion-title>
-                    <ion-buttons slot="end">
-                        <ion-button onclick="this.closest('ion-modal').dismiss()">
-                            <ion-icon slot="icon-only" name="close"></ion-icon>
-                        </ion-button>
-                    </ion-buttons>
-                </ion-toolbar>
-            </ion-header>
-            <ion-content class="ion-padding">
-                <form method="post" hx-post="{% url 'returns:line_add' pk=return_order.pk %}">
-                    {% csrf_token %}
-                    <div class="space-y-4">
-                        <div>
-                            <ion-label>{% trans "Product Name" %} *</ion-label>
-                            <ion-input name="product_name" required></ion-input>
-                        </div>
-                        <div>
-                            <ion-label>{% trans "SKU" %}</ion-label>
-                            <ion-input name="product_sku"></ion-input>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <ion-label>{% trans "Quantity" %}</ion-label>
-                                <ion-input type="number" name="quantity" value="1" min="1"></ion-input>
-                            </div>
-                            <div>
-                                <ion-label>{% trans "Unit Price" %}</ion-label>
-                                <ion-input type="number" name="unit_price" value="0.00" step="0.01" min="0"></ion-input>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <ion-label>{% trans "Tax Rate %" %}</ion-label>
-                                <ion-input type="number" name="tax_rate" value="21" step="0.01"></ion-input>
-                            </div>
-                            <div>
-                                <ion-label>{% trans "Condition" %}</ion-label>
-                                <ion-select name="condition" value="good">
-                                    <ion-select-option value="new">{% trans "New/Unused" %}</ion-select-option>
-                                    <ion-select-option value="like_new">{% trans "Like New" %}</ion-select-option>
-                                    <ion-select-option value="good">{% trans "Good" %}</ion-select-option>
-                                    <ion-select-option value="fair">{% trans "Fair" %}</ion-select-option>
-                                    <ion-select-option value="damaged">{% trans "Damaged" %}</ion-select-option>
-                                </ion-select>
-                            </div>
-                        </div>
-                        <ion-button type="submit" expand="block">
-                            <ion-icon slot="start" name="add"></ion-icon>
-                            {% trans "Add Item" %}
-                        </ion-button>
-                    </div>
-                </form>
-            </ion-content>
-        </ion-modal>
+    <!-- Workflow Actions -->
+    {% if return_obj.status == 'pending' or return_obj.status == 'approved' %}
+    <div class="flex flex-wrap gap-2 mb-4" id="return-actions">
+        {% if return_obj.status == 'pending' %}
+        <a hx-get="{% url 'returns:return_edit' return_obj.id %}"
+           hx-target="#main-content-area"
+           hx-push-url="true"
+           class="btn btn-outline flex-1">
+            {% icon "create-outline" %} {% trans "Edit" %}
+        </a>
+        <button type="button" class="btn color-primary flex-1"
+                onclick="returnAction('{% url 'returns:return_approve' return_obj.id %}', 'approve')">
+            {% icon "checkmark-circle-outline" %} {% trans "Approve" %}
+        </button>
+        <button type="button" class="btn btn-outline color-error flex-1"
+                onclick="returnAction('{% url 'returns:return_reject' return_obj.id %}', 'reject')">
+            {% icon "close-circle-outline" %} {% trans "Reject" %}
+        </button>
         {% endif %}
 
-        <!-- Actions -->
-        <ion-card>
-            <ion-card-header>
-                <ion-card-title>{% trans "Actions" %}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-                <div class="flex flex-wrap gap-3">
-                    {% if return_order.status == 'pending' %}
-                    <ion-button
-                        hx-get="{% url 'returns:return_edit' pk=return_order.pk %}"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        <ion-icon slot="start" name="create-outline"></ion-icon>
-                        {% trans "Edit" %}
-                    </ion-button>
-                    <form method="post" hx-post="{% url 'returns:return_approve' pk=return_order.pk %}">
-                        {% csrf_token %}
-                        <ion-button color="primary" type="submit">
-                            <ion-icon slot="start" name="checkmark-circle"></ion-icon>
-                            {% trans "Approve" %}
-                        </ion-button>
-                    </form>
-                    <form method="post" hx-post="{% url 'returns:return_process' pk=return_order.pk %}">
-                        {% csrf_token %}
-                        <ion-button color="success" type="submit">
-                            <ion-icon slot="start" name="checkmark-done"></ion-icon>
-                            {% trans "Process" %}
-                        </ion-button>
-                    </form>
-                    <form method="post" hx-post="{% url 'returns:return_cancel' pk=return_order.pk %}" hx-confirm="{% trans 'Are you sure you want to cancel this return?' %}">
-                        {% csrf_token %}
-                        <ion-button fill="outline" color="danger" type="submit">
-                            <ion-icon slot="start" name="close-circle"></ion-icon>
-                            {% trans "Cancel" %}
-                        </ion-button>
-                    </form>
-                    {% elif return_order.status == 'approved' %}
-                    <form method="post" hx-post="{% url 'returns:return_process' pk=return_order.pk %}">
-                        {% csrf_token %}
-                        <ion-button color="success" type="submit">
-                            <ion-icon slot="start" name="checkmark-done"></ion-icon>
-                            {% trans "Process Refund" %}
-                        </ion-button>
-                    </form>
-                    <form method="post" hx-post="{% url 'returns:return_cancel' pk=return_order.pk %}" hx-confirm="{% trans 'Are you sure you want to cancel this return?' %}">
-                        {% csrf_token %}
-                        <ion-button fill="outline" color="danger" type="submit">
-                            <ion-icon slot="start" name="close-circle"></ion-icon>
-                            {% trans "Cancel" %}
-                        </ion-button>
-                    </form>
+        {% if return_obj.status == 'approved' %}
+        <button type="button" class="btn color-success flex-1"
+                onclick="returnAction('{% url 'returns:return_complete' return_obj.id %}', 'complete')">
+            {% icon "checkmark-done-outline" %} {% trans "Complete & Refund" %}
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">{% trans "Details" %}</h3>
+        </div>
+        <div class="list">
+            {% if return_obj.customer %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "person-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ return_obj.customer.name }}</div>
+                    <div class="list-item-note">{% trans "Customer" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if return_obj.original_sale %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "receipt-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ return_obj.original_sale }}</div>
+                    <div class="list-item-note">{% trans "Original Sale" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if return_obj.reason %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "help-circle-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ return_obj.reason.name }}</div>
+                    <div class="list-item-note">{% trans "Return Reason" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if return_obj.reason_notes %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "chatbox-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ return_obj.reason_notes }}</div>
+                    <div class="list-item-note">{% trans "Reason Notes" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if return_obj.employee %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "people-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ return_obj.employee.name }}</div>
+                    <div class="list-item-note">{% trans "Processed By" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if return_obj.approved_by %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "shield-checkmark-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ return_obj.approved_by.name }} &middot; {{ return_obj.approved_at|date:"d/m/Y H:i" }}</div>
+                    <div class="list-item-note">{% trans "Approved By" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if return_obj.completed_at %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "checkmark-done-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ return_obj.completed_at|date:"d/m/Y H:i" }}</div>
+                    <div class="list-item-note">{% trans "Completed At" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if return_obj.notes %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "document-text-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ return_obj.notes }}</div>
+                    <div class="list-item-note">{% trans "Notes" %}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Items -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="flex items-center justify-between">
+                <h3 class="card-title">{% trans "Items" %}</h3>
+                <span class="badge">{{ items|length }}</span>
+            </div>
+        </div>
+        {% if items %}
+        <div class="list">
+            {% for item in items %}
+            <div class="list-item">
+                <div class="list-item-start">
+                    <span class="font-semibold">{{ item.quantity }}x</span>
+                </div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ item.product_name }}</div>
+                    <div class="list-item-note">
+                        {% if item.product_sku %}SKU: {{ item.product_sku }} &middot; {% endif %}
+                        {% trans "Condition:" %} {{ item.get_condition_display }}
+                        {% if item.restock %} &middot; {% icon "refresh-outline" css_class="text-xs" %} {% trans "Restock" %}{% endif %}
+                        {% if item.notes %} &middot; <em>{{ item.notes }}</em>{% endif %}
+                    </div>
+                </div>
+                <div class="list-item-end text-right">
+                    <div class="font-semibold">{{ item.refund_amount }}</div>
+                    <div class="text-xs text-muted">{{ item.unit_price }} x {{ item.quantity }}</div>
+                    {% if return_obj.status == 'pending' %}
+                    <button type="button" class="btn btn-ghost color-error btn-sm mt-1"
+                            onclick="deleteItem('{% url 'returns:item_delete' return_obj.id item.id %}')">
+                        {% icon "trash-outline" %}
+                    </button>
                     {% endif %}
                 </div>
-            </ion-card-content>
-        </ion-card>
-    {% endfill %}
-{% endcomponent %}
+            </div>
+            {% endfor %}
+        </div>
+        <!-- Totals -->
+        <div class="list" style="border-top: 2px solid var(--color-base-300)">
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-label font-bold text-lg">{% trans "Total Refund" %}</div>
+                </div>
+                <div class="list-item-end font-bold text-lg text-error">{{ return_obj.total_refund }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-muted">
+            {% icon "cube-outline" css_class="text-4xl block mx-auto mb-2" %}
+            <p>{% trans "No items added yet" %}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Danger Zone -->
+    {% if return_obj.status == 'pending' %}
+    <div class="card" style="border-color: var(--color-error)">
+        <div class="card-header">
+            <h3 class="card-title text-error">{% trans "Danger Zone" %}</h3>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">{% trans "Permanently delete this return. This action cannot be undone." %}</p>
+            <button type="button" class="btn btn-outline color-error"
+                    onclick="deleteReturn()">
+                {% icon "trash-outline" %} {% trans "Delete Return" %}
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function returnAction(url, action) {
+    if (action === 'reject' && !confirm('{% trans "Reject this return?" %}')) return;
+    if (action === 'complete' && !confirm('{% trans "Complete this return and process the refund?" %}')) return;
+    fetch(url, {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            htmx.ajax('GET', '{% url "returns:return_detail" return_obj.id %}', '#main-content-area');
+        }
+    });
+}
+
+function deleteItem(url) {
+    if (confirm('{% trans "Remove this item from the return?" %}')) {
+        fetch(url, {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                htmx.ajax('GET', '{% url "returns:return_detail" return_obj.id %}', '#main-content-area');
+            }
+        });
+    }
+}
+
+function deleteReturn() {
+    if (confirm('{% trans "Delete this return permanently?" %}')) {
+        fetch('{% url "returns:return_delete" return_obj.id %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                htmx.ajax('GET', '{% url "returns:return_list" %}', '#main-content-area');
+            }
+        });
+    }
+}
+</script>

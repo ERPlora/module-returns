@@ -1,87 +1,128 @@
-{% load i18n ui component_tags %}
+{% load i18n djicons %}
 
-{% component "page"
-    title=_("Returns & Refunds")
-    subtitle=_("Manage product returns and store credits")
-    module_id="returns"
-    tabbar_view="dashboard" %}
+<div class="p-4">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">{% trans "Returns & Refunds" %}</h1>
+        <p class="text-sm mt-2 text-muted">{% trans "Manage product returns, refunds, and store credits" %}</p>
+    </div>
 
-    {% fill "content" %}
-        <!-- Stats Cards -->
-        <ion-row class="mb-md">
-            <ion-col size="6" size-md="3">
-                {% ui_stat_card value=stats.total label=_("Total Returns") icon="return-down-back-outline" color="primary" %}
-            </ion-col>
-            <ion-col size="6" size-md="3">
-                {% ui_stat_card value=stats.pending label=_("Pending") icon="time-outline" color="warning" %}
-            </ion-col>
-            <ion-col size="6" size-md="3">
-                {% ui_stat_card value=stats.processed label=_("Processed") icon="checkmark-circle-outline" color="success" %}
-            </ion-col>
-            <ion-col size="6" size-md="3">
-                {% ui_stat_card value=stats.total_refunded_formatted label=_("Refunded") icon="cash-outline" color="danger" %}
-            </ion-col>
-        </ion-row>
-
-        <!-- Quick Actions -->
-        {% ui_card title=_("Quick Actions") css_class="mb-md" %}
-            <div class="d-flex flex-wrap gap-sm">
-                <ion-button
-                    hx-get="{% url 'returns:return_create' %}"
-                    hx-target="#main-content-area"
-                    hx-push-url="true">
-                    <ion-icon slot="start" name="add"></ion-icon>
-                    {% trans "New Return" %}
-                </ion-button>
-                <ion-button
-                    fill="outline"
-                    hx-get="{% url 'returns:credit_create' %}"
-                    hx-target="#main-content-area"
-                    hx-push-url="true">
-                    <ion-icon slot="start" name="card"></ion-icon>
-                    {% trans "Issue Credit" %}
-                </ion-button>
-                <ion-button
-                    fill="outline"
-                    hx-get="{% url 'returns:reason_list' %}"
-                    hx-target="#main-content-area"
-                    hx-push-url="true">
-                    <ion-icon slot="start" name="list"></ion-icon>
-                    {% trans "Manage Reasons" %}
-                </ion-button>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card">
+            <div class="card-body flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    {% icon "return-down-back-outline" css_class="text-xl text-primary" %}
+                </div>
+                <div>
+                    <div class="text-2xl font-bold">{{ total_returns }}</div>
+                    <div class="text-xs text-muted">{% trans "Total Returns" %}</div>
+                </div>
             </div>
-        {% endui_card %}
+        </div>
+        <div class="card">
+            <div class="card-body flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                    {% icon "time-outline" css_class="text-xl text-warning" %}
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-warning">{{ pending_returns }}</div>
+                    <div class="text-xs text-muted">{% trans "Pending" %}</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
+                    {% icon "checkmark-circle-outline" css_class="text-xl text-success" %}
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-success">{{ completed_returns }}</div>
+                    <div class="text-xs text-muted">{% trans "Completed" %}</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center">
+                    {% icon "cash-outline" css_class="text-xl text-error" %}
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-error">{{ total_refunded }}</div>
+                    <div class="text-xs text-muted">{% trans "Refunded" %}</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <!-- Recent Returns -->
-        {% ui_card title=_("Recent Returns") %}
-            {% if recent_returns %}
-            <ion-list lines="full">
-                {% for return in recent_returns %}
-                <ion-item button
-                    hx-get="{% url 'returns:return_detail' pk=return.pk %}"
-                    hx-target="#main-content-area"
-                    hx-push-url="true">
-                    <ion-label>
-                        <h3 class="fw-medium">{{ return.return_number }}</h3>
-                        <p class="fs-sm text-secondary">
-                            {{ return.created_at|date:"d/m/Y H:i" }}
-                            {% if return.reason %} - {{ return.reason.name }}{% endif %}
-                        </p>
-                    </ion-label>
-                    <ion-badge slot="end"
-                        {% if return.status == 'pending' %}color="warning"{% endif %}
-                        {% if return.status == 'approved' %}color="primary"{% endif %}
-                        {% if return.status == 'processed' %}color="success"{% endif %}
-                        {% if return.status == 'cancelled' %}color="medium"{% endif %}>
-                        {{ return.get_status_display }}
-                    </ion-badge>
-                    <ion-note slot="end" class="ml-xs">{{ return.total_amount_formatted }}</ion-note>
-                </ion-item>
-                {% endfor %}
-            </ion-list>
-            {% else %}
-            {% ui_empty_state title=_("No returns yet") icon="return-down-back-outline" %}
-            {% endif %}
-        {% endui_card %}
-    {% endfill %}
-{% endcomponent %}
+    <!-- Quick Actions -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">{% trans "Quick Actions" %}</h3>
+        </div>
+        <div class="list">
+            <a hx-get="{% url 'returns:return_add' %}" hx-target="#main-content-area" hx-push-url="true" class="list-item list-item-clickable">
+                <div class="list-item-start">{% icon "add-circle-outline" css_class="text-xl text-primary" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "New Return" %}</div>
+                    <div class="list-item-note">{% trans "Create a new return request" %}</div>
+                </div>
+                <div class="list-item-end">{% icon "chevron-forward-outline" css_class="text-muted" %}</div>
+            </a>
+            <a hx-get="{% url 'returns:credit_add' %}" hx-target="#main-content-area" hx-push-url="true" class="list-item list-item-clickable">
+                <div class="list-item-start">{% icon "card-outline" css_class="text-xl text-success" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Issue Store Credit" %}</div>
+                    <div class="list-item-note">{% trans "Create a new store credit for a customer" %}</div>
+                </div>
+                <div class="list-item-end">{% icon "chevron-forward-outline" css_class="text-muted" %}</div>
+            </a>
+            <a hx-get="{% url 'returns:reasons' %}" hx-target="#main-content-area" hx-push-url="true" class="list-item list-item-clickable">
+                <div class="list-item-start">{% icon "list-outline" css_class="text-xl text-warning" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{% trans "Manage Reasons" %}</div>
+                    <div class="list-item-note">{% trans "Configure predefined return reasons" %}</div>
+                </div>
+                <div class="list-item-end">{% icon "chevron-forward-outline" css_class="text-muted" %}</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Returns -->
+    <div class="card">
+        <div class="card-header">
+            <div class="flex items-center justify-between">
+                <h3 class="card-title">{% trans "Recent Returns" %}</h3>
+                <button class="btn btn-ghost btn-sm" hx-get="{% url 'returns:return_list' %}" hx-target="#main-content-area" hx-push-url="true">
+                    {% trans "View All" %} {% icon "chevron-forward-outline" css_class="ml-1" %}
+                </button>
+            </div>
+        </div>
+        {% if recent_returns %}
+        <div class="list">
+            {% for ret in recent_returns %}
+            <a hx-get="{% url 'returns:return_detail' ret.id %}" hx-target="#main-content-area" hx-push-url="true" class="list-item list-item-clickable">
+                <div class="list-item-start">
+                    <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">{% icon "return-down-back-outline" css_class="text-primary" %}</div>
+                </div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ ret.number }}{% if ret.customer %} <span class="text-muted font-normal">&middot; {{ ret.customer.name }}</span>{% endif %}</div>
+                    <div class="list-item-note">{{ ret.created_at|date:"d/m/Y H:i" }}{% if ret.reason %} &middot; {{ ret.reason.name }}{% endif %}</div>
+                </div>
+                <div class="list-item-end text-right">
+                    <span class="badge color-{% if ret.status == 'pending' %}warning{% elif ret.status == 'approved' %}primary{% elif ret.status == 'completed' %}success{% elif ret.status == 'rejected' %}error{% else %}medium{% endif %}">{{ ret.get_status_display }}</span>
+                    <div class="text-sm font-semibold mt-1">{{ ret.total_refund }}</div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12 text-muted">
+            {% icon "return-down-back-outline" css_class="text-5xl block mx-auto mb-2" %}
+            <p class="mt-2">{% trans "No returns yet" %}</p>
+            <button class="btn btn-sm color-primary mt-3" hx-get="{% url 'returns:return_add' %}" hx-target="#main-content-area" hx-push-url="true">
+                {% icon "add-outline" css_class="mr-1" %} {% trans "Create First Return" %}
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>

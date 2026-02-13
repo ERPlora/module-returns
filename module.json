@@ -1,0 +1,42 @@
+{
+    "id": "returns",
+    "name": "Returns",
+    "version": "2.0.0",
+    "description": "Product return and refund management with store credits",
+    "author": "ERPlora",
+    "category": "sales",
+    "icon": "arrow-undo",
+    "color": "danger",
+    "menu": {
+        "label": "Returns",
+        "icon": "arrow-undo-outline",
+        "order": 6
+    },
+    "navigation": [
+        {"id": "dashboard", "label": "Dashboard", "icon": "home-outline"},
+        {"id": "list", "label": "Returns", "icon": "arrow-undo-outline"},
+        {"id": "credits", "label": "Store Credits", "icon": "card-outline"},
+        {"id": "refunds", "label": "Refunds", "icon": "cash-outline"},
+        {"id": "reasons", "label": "Reasons", "icon": "list-outline"},
+        {"id": "settings", "label": "Settings", "icon": "settings-outline"}
+    ],
+    "permissions": [
+        "returns.view_return",
+        "returns.add_return",
+        "returns.change_return",
+        "returns.delete_return",
+        "returns.approve_return",
+        "returns.view_returnitem",
+        "returns.add_returnitem",
+        "returns.change_returnitem",
+        "returns.delete_returnitem",
+        "returns.view_returnreason",
+        "returns.add_returnreason",
+        "returns.change_returnreason",
+        "returns.delete_returnreason",
+        "returns.view_storecredit",
+        "returns.add_storecredit",
+        "returns.change_storecredit",
+        "returns.process_refund"
+    ]
+}

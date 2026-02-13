@@ -1,1 +1,1 @@
-default_app_config = 'tables.apps.TablesConfig'
+default_app_config = 'modules.returns.apps.ReturnsConfig'

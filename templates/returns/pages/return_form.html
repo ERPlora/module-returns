@@ -1,12 +1,6 @@
-{% extends "ui/app_base.html" %}
-{% load static %}
+{% extends "module_base.html" %}
 {% load i18n %}
 
-{% block page_title %}
-    {% if is_edit %}{% trans "Edit Return" %}
-    {% else %}{% trans "New Return" %}{% endif %}
-{% endblock %}
-
-{% block page_content %}
+{% block module_content %}
 {% include "returns/partials/return_form.html" %}
 {% endblock %}

@@ -1,109 +1,136 @@
-{% load i18n component_tags %}
+{% load i18n djicons %}
 
-{% component "page"
-    title=credit.code
-    subtitle=_("Store Credit")
-    module_id="returns"
-    tabbar_view="credits"
-    hide_tabbar=True
-    back_url="returns:credit_list" %}
+<div class="p-4">
+    <!-- Back Button -->
+    <button type="button"
+            hx-get="{% url 'returns:credits' %}"
+            hx-target="#main-content-area"
+            hx-push-url="true"
+            class="btn btn-ghost mb-3">
+        {% icon "arrow-back-outline" %}
+        {% trans "Back to Credits" %}
+    </button>
 
-    {% fill "header_actions" %}
-        <ion-badge color="{% if credit.is_valid %}success{% else %}medium{% endif %}">
-            {% if credit.is_valid %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
-        </ion-badge>
-    {% endfill %}
-
-    {% fill "content" %}
-        <!-- Balance Card -->
-        <ion-card class="mb-4">
-            <ion-card-content>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-                    <div>
-                        <div class="text-3xl font-bold text-green-600">{{ credit.current_amount }} &euro;</div>
-                        <div class="text-sm text-gray-500">{% trans "Current Balance" %}</div>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-gray-600">{{ credit.original_amount }} &euro;</div>
-                        <div class="text-sm text-gray-500">{% trans "Original Amount" %}</div>
-                    </div>
-                    {% if credit.expires_at %}
-                    <div>
-                        <div class="text-xl font-bold {% if credit.is_expired %}text-red-600{% else %}text-gray-600{% endif %}">
-                            {{ credit.expires_at|date:"d/m/Y" }}
-                        </div>
-                        <div class="text-sm text-gray-500">{% trans "Expires" %}</div>
-                    </div>
-                    {% endif %}
+    <!-- Header Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="card-title font-mono">{{ credit.code }}</h2>
+                    <p class="text-sm opacity-60">{% trans "Store Credit" %}</p>
                 </div>
-            </ion-card-content>
-        </ion-card>
+                <span class="badge badge-lg color-{% if credit.is_valid %}success{% else %}medium{% endif %}">
+                    {% if credit.is_valid %}{% trans "Active" %}{% elif credit.is_expired %}{% trans "Expired" %}{% else %}{% trans "Inactive" %}{% endif %}
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Balance Stats -->
+            <div class="grid grid-cols-2 {% if credit.expires_at %}md:grid-cols-3{% endif %} gap-4">
+                <div class="text-center">
+                    <div class="text-3xl font-bold {% if credit.is_valid %}text-success{% else %}text-muted{% endif %}">{{ credit.current_amount }}</div>
+                    <div class="text-xs text-muted">{% trans "Current Balance" %}</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-bold">{{ credit.original_amount }}</div>
+                    <div class="text-xs text-muted">{% trans "Original Amount" %}</div>
+                </div>
+                {% if credit.expires_at %}
+                <div class="text-center">
+                    <div class="text-xl font-bold {% if credit.is_expired %}text-error{% endif %}">{{ credit.expires_at|date:"d/m/Y" }}</div>
+                    <div class="text-xs text-muted">{% trans "Expires" %}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-        <!-- Customer Info -->
-        <ion-card class="mb-4">
-            <ion-card-header>
-                <ion-card-title>{% trans "Customer Information" %}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-                <ion-list>
-                    {% if credit.customer_name %}
-                    <ion-item>
-                        <ion-icon slot="start" name="person-outline"></ion-icon>
-                        <ion-label>{{ credit.customer_name }}</ion-label>
-                    </ion-item>
-                    {% endif %}
-                    {% if credit.customer_email %}
-                    <ion-item>
-                        <ion-icon slot="start" name="mail-outline"></ion-icon>
-                        <ion-label>{{ credit.customer_email }}</ion-label>
-                    </ion-item>
-                    {% endif %}
-                    {% if credit.customer_phone %}
-                    <ion-item>
-                        <ion-icon slot="start" name="call-outline"></ion-icon>
-                        <ion-label>{{ credit.customer_phone }}</ion-label>
-                    </ion-item>
-                    {% endif %}
-                    {% if not credit.customer_name and not credit.customer_email and not credit.customer_phone %}
-                    <ion-item>
-                        <ion-label class="text-gray-500">{% trans "No customer information" %}</ion-label>
-                    </ion-item>
-                    {% endif %}
-                </ion-list>
-            </ion-card-content>
-        </ion-card>
+    <!-- Customer Information -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">{% trans "Customer Information" %}</h3>
+        </div>
+        <div class="list">
+            {% if credit.customer %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "person-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ credit.customer.name }}</div>
+                    <div class="list-item-note">{% trans "Customer" %}</div>
+                </div>
+            </div>
+            {% elif credit.customer_name %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "person-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ credit.customer_name }}</div>
+                    <div class="list-item-note">{% trans "Customer Name" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if credit.customer_email %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "mail-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ credit.customer_email }}</div>
+                    <div class="list-item-note">{% trans "Email" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if credit.customer_phone %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "call-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ credit.customer_phone }}</div>
+                    <div class="list-item-note">{% trans "Phone" %}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% if not credit.customer and not credit.customer_name and not credit.customer_email and not credit.customer_phone %}
+            <div class="list-item">
+                <div class="list-item-content">
+                    <div class="list-item-label text-muted">{% trans "No customer information" %}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
-        <!-- Details -->
-        <ion-card class="mb-4">
-            <ion-card-header>
-                <ion-card-title>{% trans "Details" %}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-                <ion-list>
-                    <ion-item>
-                        <ion-label>{% trans "Created" %}</ion-label>
-                        <ion-note slot="end">{{ credit.created_at|date:"d/m/Y H:i" }}</ion-note>
-                    </ion-item>
-                    {% if credit.return_order %}
-                    <ion-item
-                        button
-                        hx-get="{% url 'returns:return_detail' pk=credit.return_order.pk %}"
-                        hx-target="#main-content-area"
-                        hx-push-url="true">
-                        <ion-label>{% trans "Related Return" %}</ion-label>
-                        <ion-note slot="end">{{ credit.return_order.return_number }}</ion-note>
-                    </ion-item>
-                    {% endif %}
-                    {% if credit.notes %}
-                    <ion-item>
-                        <ion-label class="ion-text-wrap">
-                            <h3>{% trans "Notes" %}</h3>
-                            <p>{{ credit.notes }}</p>
-                        </ion-label>
-                    </ion-item>
-                    {% endif %}
-                </ion-list>
-            </ion-card-content>
-        </ion-card>
-    {% endfill %}
-{% endcomponent %}
+    <!-- Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">{% trans "Details" %}</h3>
+        </div>
+        <div class="list">
+            <div class="list-item">
+                <div class="list-item-start">{% icon "time-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ credit.created_at|date:"d/m/Y H:i" }}</div>
+                    <div class="list-item-note">{% trans "Created" %}</div>
+                </div>
+            </div>
+            {% if credit.return_obj %}
+            <a hx-get="{% url 'returns:return_detail' credit.return_obj.id %}"
+               hx-target="#main-content-area"
+               hx-push-url="true"
+               class="list-item list-item-clickable">
+                <div class="list-item-start">{% icon "return-down-back-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ credit.return_obj.number }}</div>
+                    <div class="list-item-note">{% trans "Related Return" %}</div>
+                </div>
+                <div class="list-item-end">{% icon "chevron-forward-outline" css_class="text-muted" %}</div>
+            </a>
+            {% endif %}
+            {% if credit.notes %}
+            <div class="list-item">
+                <div class="list-item-start">{% icon "document-text-outline" css_class="text-muted" %}</div>
+                <div class="list-item-content">
+                    <div class="list-item-label">{{ credit.notes }}</div>
+                    <div class="list-item-note">{% trans "Notes" %}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

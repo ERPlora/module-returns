@@ -57,7 +57,7 @@ NAVIGATION = [
 ]
 
 # Module Dependencies
-DEPENDENCIES = ["sales>=1.0.0"]
+DEPENDENCIES = ['sales', 'customers', 'inventory']
 
 # Default Settings
 SETTINGS = {
