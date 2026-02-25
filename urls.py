@@ -8,6 +8,9 @@ urlpatterns = [
     # Dashboard
     path('', views.index, name='index'),
 
+    # Navigation tab alias
+    path('returns/', views.return_list, name='returns'),
+
     # Return list
     path('list/', views.return_list, name='return_list'),
 
