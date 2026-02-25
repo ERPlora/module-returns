@@ -1,0 +1,462 @@
+# English translations for Returns
+# Copyright (C) 2025
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-25 00:00+0000\n"
+"PO-Revision-Date: 2026-02-25 00:00+0000\n"
+"Last-Translator: ERPlora Team <info@erplora.com>\n"
+"Language: en\n"
+"Language-Team: English\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: module.py
+msgid "Returns"
+msgstr "Returns"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Credits"
+msgstr "Credits"
+
+msgid "Settings"
+msgstr "Settings"
+
+msgid "Can view returns"
+msgstr "Can view returns"
+
+msgid "Can create returns"
+msgstr "Can create returns"
+
+msgid "Can edit returns"
+msgstr "Can edit returns"
+
+msgid "Can delete returns"
+msgstr "Can delete returns"
+
+msgid "Can approve returns"
+msgstr "Can approve returns"
+
+msgid "Can view return reasons"
+msgstr "Can view return reasons"
+
+msgid "Can add return reasons"
+msgstr "Can add return reasons"
+
+msgid "Can edit return reasons"
+msgstr "Can edit return reasons"
+
+msgid "Can delete return reasons"
+msgstr "Can delete return reasons"
+
+msgid "Can view store credits"
+msgstr "Can view store credits"
+
+msgid "Can add store credits"
+msgstr "Can add store credits"
+
+msgid "Can edit store credits"
+msgstr "Can edit store credits"
+
+msgid "Can use store credits"
+msgstr "Can use store credits"
+
+#: models.py - ReturnSettings
+msgid "Allow Returns"
+msgstr "Allow Returns"
+
+msgid "Return Window (Days)"
+msgstr "Return Window (Days)"
+
+msgid "Number of days after sale to allow returns"
+msgstr "Number of days after sale to allow returns"
+
+msgid "Allow Store Credit"
+msgstr "Allow Store Credit"
+
+msgid "Require Receipt"
+msgstr "Require Receipt"
+
+msgid "Auto Restore Stock"
+msgstr "Auto Restore Stock"
+
+msgid "Automatically restore inventory when return is processed"
+msgstr "Automatically restore inventory when return is processed"
+
+msgid "Returns Settings"
+msgstr "Returns Settings"
+
+#: models.py - ReturnReason
+msgid "Name"
+msgstr "Name"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Restocks Inventory"
+msgstr "Restocks Inventory"
+
+msgid "Whether returning with this reason restores stock"
+msgstr "Whether returning with this reason restores stock"
+
+msgid "Requires Note"
+msgstr "Requires Note"
+
+msgid "Sort Order"
+msgstr "Sort Order"
+
+msgid "Active"
+msgstr "Active"
+
+msgid "Return Reason"
+msgstr "Return Reason"
+
+msgid "Return Reasons"
+msgstr "Return Reasons"
+
+#: models.py - Return Status
+msgid "Pending"
+msgstr "Pending"
+
+msgid "Approved"
+msgstr "Approved"
+
+msgid "Rejected"
+msgstr "Rejected"
+
+msgid "Completed"
+msgstr "Completed"
+
+msgid "Cancelled"
+msgstr "Cancelled"
+
+#: models.py - Refund methods
+msgid "Original Payment Method"
+msgstr "Original Payment Method"
+
+msgid "Cash"
+msgstr "Cash"
+
+msgid "Store Credit"
+msgstr "Store Credit"
+
+#: models.py - Return fields
+msgid "Return Number"
+msgstr "Return Number"
+
+msgid "Original Sale"
+msgstr "Original Sale"
+
+msgid "Customer"
+msgstr "Customer"
+
+msgid "Processed By"
+msgstr "Processed By"
+
+msgid "Reason Notes"
+msgstr "Reason Notes"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Subtotal"
+msgstr "Subtotal"
+
+msgid "Tax Amount"
+msgstr "Tax Amount"
+
+msgid "Total Refund"
+msgstr "Total Refund"
+
+msgid "Refund Method"
+msgstr "Refund Method"
+
+msgid "Notes"
+msgstr "Notes"
+
+msgid "Approved By"
+msgstr "Approved By"
+
+msgid "Approved At"
+msgstr "Approved At"
+
+msgid "Completed At"
+msgstr "Completed At"
+
+msgid "Return"
+msgstr "Return"
+
+#: models.py - ReturnItem condition
+msgid "New / Unopened"
+msgstr "New / Unopened"
+
+msgid "Good Condition"
+msgstr "Good Condition"
+
+msgid "Damaged"
+msgstr "Damaged"
+
+msgid "Defective"
+msgstr "Defective"
+
+#: models.py - ReturnItem fields
+msgid "Original Sale Item"
+msgstr "Original Sale Item"
+
+msgid "Product"
+msgstr "Product"
+
+msgid "Product Name"
+msgstr "Product Name"
+
+msgid "Snapshot of product name at time of return"
+msgstr "Snapshot of product name at time of return"
+
+msgid "Product SKU"
+msgstr "Product SKU"
+
+msgid "Quantity"
+msgstr "Quantity"
+
+msgid "Unit Price"
+msgstr "Unit Price"
+
+msgid "Tax Rate %"
+msgstr "Tax Rate %"
+
+msgid "Refund Amount"
+msgstr "Refund Amount"
+
+msgid "Condition"
+msgstr "Condition"
+
+msgid "Restock Item"
+msgstr "Restock Item"
+
+msgid "Return item to inventory stock"
+msgstr "Return item to inventory stock"
+
+msgid "Return Item"
+msgstr "Return Item"
+
+msgid "Return Items"
+msgstr "Return Items"
+
+#: models.py - StoreCredit
+msgid "Credit Code"
+msgstr "Credit Code"
+
+msgid "Customer Name"
+msgstr "Customer Name"
+
+msgid "Customer Email"
+msgstr "Customer Email"
+
+msgid "Customer Phone"
+msgstr "Customer Phone"
+
+msgid "Original Amount"
+msgstr "Original Amount"
+
+msgid "Current Balance"
+msgstr "Current Balance"
+
+msgid "Related Return"
+msgstr "Related Return"
+
+msgid "Expires At"
+msgstr "Expires At"
+
+msgid "Store Credits"
+msgstr "Store Credits"
+
+msgid "Insufficient store credit"
+msgstr "Insufficient store credit"
+
+#: views.py
+msgid "Return created successfully"
+msgstr "Return created successfully"
+
+msgid "New Return"
+msgstr "New Return"
+
+msgid "Return updated successfully"
+msgstr "Return updated successfully"
+
+msgid "Edit Return"
+msgstr "Edit Return"
+
+msgid "Return deleted successfully"
+msgstr "Return deleted successfully"
+
+msgid "Return approved"
+msgstr "Return approved"
+
+msgid "Return rejected"
+msgstr "Return rejected"
+
+msgid "Return completed and refund processed"
+msgstr "Return completed and refund processed"
+
+msgid "Item added to return"
+msgstr "Item added to return"
+
+msgid "Add Item"
+msgstr "Add Item"
+
+msgid "Item removed from return"
+msgstr "Item removed from return"
+
+msgid "Reason created"
+msgstr "Reason created"
+
+msgid "Add Reason"
+msgstr "Add Reason"
+
+#: templates
+msgid "Back to Returns"
+msgstr "Back to Returns"
+
+msgid "Return Information"
+msgstr "Return Information"
+
+msgid "Return Reason"
+msgstr "Return Reason"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Create Return"
+msgstr "Create Return"
+
+msgid "Save Changes"
+msgstr "Save Changes"
+
+msgid "Refunds"
+msgstr "Refunds"
+
+msgid "Completed refund transactions"
+msgstr "Completed refund transactions"
+
+msgid "refunds"
+msgstr "refunds"
+
+msgid "total"
+msgstr "total"
+
+msgid "All return transactions"
+msgstr "All return transactions"
+
+msgid "Search by number, customer..."
+msgstr "Search by number, customer..."
+
+msgid "All Status"
+msgstr "All Status"
+
+msgid "All Methods"
+msgstr "All Methods"
+
+msgid "No refunds found"
+msgstr "No refunds found"
+
+msgid "No returns found"
+msgstr "No returns found"
+
+msgid "Create First Return"
+msgstr "Create First Return"
+
+msgid "Back to Credits"
+msgstr "Back to Credits"
+
+msgid "Expired"
+msgstr "Expired"
+
+msgid "Inactive"
+msgstr "Inactive"
+
+msgid "No customer information"
+msgstr "No customer information"
+
+msgid "Details"
+msgstr "Details"
+
+msgid "Created"
+msgstr "Created"
+
+msgid "Predefined reasons for product returns"
+msgstr "Predefined reasons for product returns"
+
+msgid "Restocks"
+msgstr "Restocks"
+
+msgid "Note Required"
+msgstr "Note Required"
+
+msgid "No return reasons defined"
+msgstr "No return reasons defined"
+
+msgid "Add First Reason"
+msgstr "Add First Reason"
+
+msgid "Returns & Refunds"
+msgstr "Returns & Refunds"
+
+msgid "Manage product returns, refunds, and store credits"
+msgstr "Manage product returns, refunds, and store credits"
+
+msgid "Total Returns"
+msgstr "Total Returns"
+
+msgid "Refunded"
+msgstr "Refunded"
+
+msgid "Quick Actions"
+msgstr "Quick Actions"
+
+msgid "Create a new return request"
+msgstr "Create a new return request"
+
+msgid "Issue Store Credit"
+msgstr "Issue Store Credit"
+
+msgid "Create a new store credit for a customer"
+msgstr "Create a new store credit for a customer"
+
+msgid "Manage Reasons"
+msgstr "Manage Reasons"
+
+msgid "Configure predefined return reasons"
+msgstr "Configure predefined return reasons"
+
+msgid "Recent Returns"
+msgstr "Recent Returns"
+
+msgid "View All"
+msgstr "View All"
+
+msgid "No returns yet"
+msgstr "No returns yet"
+
+msgid "Credit Details"
+msgstr "Credit Details"
+
+msgid "Amount"
+msgstr "Amount"
+
+msgid "Optional"
+msgstr "Optional"
+
+msgid "Reason for issuing this credit"
+msgstr "Reason for issuing this credit"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Phone"
+msgstr "Phone"

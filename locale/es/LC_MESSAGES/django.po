@@ -1,0 +1,462 @@
+# Spanish translations for Returns
+# Copyright (C) 2025
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-25 00:00+0000\n"
+"PO-Revision-Date: 2026-02-25 00:00+0000\n"
+"Last-Translator: ERPlora Team <info@erplora.com>\n"
+"Language: es\n"
+"Language-Team: Spanish\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: module.py
+msgid "Returns"
+msgstr "Devoluciones"
+
+msgid "Dashboard"
+msgstr "Panel"
+
+msgid "Credits"
+msgstr "Créditos"
+
+msgid "Settings"
+msgstr "Configuración"
+
+msgid "Can view returns"
+msgstr "Puede ver devoluciones"
+
+msgid "Can create returns"
+msgstr "Puede crear devoluciones"
+
+msgid "Can edit returns"
+msgstr "Puede editar devoluciones"
+
+msgid "Can delete returns"
+msgstr "Puede eliminar devoluciones"
+
+msgid "Can approve returns"
+msgstr "Puede aprobar devoluciones"
+
+msgid "Can view return reasons"
+msgstr "Puede ver motivos de devolución"
+
+msgid "Can add return reasons"
+msgstr "Puede añadir motivos de devolución"
+
+msgid "Can edit return reasons"
+msgstr "Puede editar motivos de devolución"
+
+msgid "Can delete return reasons"
+msgstr "Puede eliminar motivos de devolución"
+
+msgid "Can view store credits"
+msgstr "Puede ver créditos de tienda"
+
+msgid "Can add store credits"
+msgstr "Puede añadir créditos de tienda"
+
+msgid "Can edit store credits"
+msgstr "Puede editar créditos de tienda"
+
+msgid "Can use store credits"
+msgstr "Puede usar créditos de tienda"
+
+#: models.py - ReturnSettings
+msgid "Allow Returns"
+msgstr "Permitir devoluciones"
+
+msgid "Return Window (Days)"
+msgstr "Plazo de devolución (días)"
+
+msgid "Number of days after sale to allow returns"
+msgstr "Número de días después de la venta para permitir devoluciones"
+
+msgid "Allow Store Credit"
+msgstr "Permitir crédito de tienda"
+
+msgid "Require Receipt"
+msgstr "Requerir recibo"
+
+msgid "Auto Restore Stock"
+msgstr "Restaurar stock automáticamente"
+
+msgid "Automatically restore inventory when return is processed"
+msgstr "Restaurar automáticamente el inventario cuando se procesa la devolución"
+
+msgid "Returns Settings"
+msgstr "Configuración de devoluciones"
+
+#: models.py - ReturnReason
+msgid "Name"
+msgstr "Nombre"
+
+msgid "Description"
+msgstr "Descripción"
+
+msgid "Restocks Inventory"
+msgstr "Repone inventario"
+
+msgid "Whether returning with this reason restores stock"
+msgstr "Si devolver con este motivo repone el stock"
+
+msgid "Requires Note"
+msgstr "Requiere nota"
+
+msgid "Sort Order"
+msgstr "Orden"
+
+msgid "Active"
+msgstr "Activo"
+
+msgid "Return Reason"
+msgstr "Motivo de devolución"
+
+msgid "Return Reasons"
+msgstr "Motivos de devolución"
+
+#: models.py - Return Status
+msgid "Pending"
+msgstr "Pendiente"
+
+msgid "Approved"
+msgstr "Aprobada"
+
+msgid "Rejected"
+msgstr "Rechazada"
+
+msgid "Completed"
+msgstr "Completada"
+
+msgid "Cancelled"
+msgstr "Cancelada"
+
+#: models.py - Refund methods
+msgid "Original Payment Method"
+msgstr "Método de pago original"
+
+msgid "Cash"
+msgstr "Efectivo"
+
+msgid "Store Credit"
+msgstr "Crédito de tienda"
+
+#: models.py - Return fields
+msgid "Return Number"
+msgstr "Número de devolución"
+
+msgid "Original Sale"
+msgstr "Venta original"
+
+msgid "Customer"
+msgstr "Cliente"
+
+msgid "Processed By"
+msgstr "Procesado por"
+
+msgid "Reason Notes"
+msgstr "Notas del motivo"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Subtotal"
+msgstr "Subtotal"
+
+msgid "Tax Amount"
+msgstr "Importe de impuestos"
+
+msgid "Total Refund"
+msgstr "Reembolso total"
+
+msgid "Refund Method"
+msgstr "Método de reembolso"
+
+msgid "Notes"
+msgstr "Notas"
+
+msgid "Approved By"
+msgstr "Aprobado por"
+
+msgid "Approved At"
+msgstr "Aprobado el"
+
+msgid "Completed At"
+msgstr "Completado el"
+
+msgid "Return"
+msgstr "Devolución"
+
+#: models.py - ReturnItem condition
+msgid "New / Unopened"
+msgstr "Nuevo / Sin abrir"
+
+msgid "Good Condition"
+msgstr "Buen estado"
+
+msgid "Damaged"
+msgstr "Dañado"
+
+msgid "Defective"
+msgstr "Defectuoso"
+
+#: models.py - ReturnItem fields
+msgid "Original Sale Item"
+msgstr "Artículo de venta original"
+
+msgid "Product"
+msgstr "Producto"
+
+msgid "Product Name"
+msgstr "Nombre del producto"
+
+msgid "Snapshot of product name at time of return"
+msgstr "Nombre del producto en el momento de la devolución"
+
+msgid "Product SKU"
+msgstr "SKU del producto"
+
+msgid "Quantity"
+msgstr "Cantidad"
+
+msgid "Unit Price"
+msgstr "Precio unitario"
+
+msgid "Tax Rate %"
+msgstr "Tasa de impuesto %"
+
+msgid "Refund Amount"
+msgstr "Importe del reembolso"
+
+msgid "Condition"
+msgstr "Condición"
+
+msgid "Restock Item"
+msgstr "Reponer artículo"
+
+msgid "Return item to inventory stock"
+msgstr "Devolver artículo al inventario"
+
+msgid "Return Item"
+msgstr "Artículo de devolución"
+
+msgid "Return Items"
+msgstr "Artículos de devolución"
+
+#: models.py - StoreCredit
+msgid "Credit Code"
+msgstr "Código de crédito"
+
+msgid "Customer Name"
+msgstr "Nombre del cliente"
+
+msgid "Customer Email"
+msgstr "Email del cliente"
+
+msgid "Customer Phone"
+msgstr "Teléfono del cliente"
+
+msgid "Original Amount"
+msgstr "Importe original"
+
+msgid "Current Balance"
+msgstr "Saldo actual"
+
+msgid "Related Return"
+msgstr "Devolución relacionada"
+
+msgid "Expires At"
+msgstr "Vence el"
+
+msgid "Store Credits"
+msgstr "Créditos de tienda"
+
+msgid "Insufficient store credit"
+msgstr "Crédito de tienda insuficiente"
+
+#: views.py
+msgid "Return created successfully"
+msgstr "Devolución creada correctamente"
+
+msgid "New Return"
+msgstr "Nueva devolución"
+
+msgid "Return updated successfully"
+msgstr "Devolución actualizada correctamente"
+
+msgid "Edit Return"
+msgstr "Editar devolución"
+
+msgid "Return deleted successfully"
+msgstr "Devolución eliminada correctamente"
+
+msgid "Return approved"
+msgstr "Devolución aprobada"
+
+msgid "Return rejected"
+msgstr "Devolución rechazada"
+
+msgid "Return completed and refund processed"
+msgstr "Devolución completada y reembolso procesado"
+
+msgid "Item added to return"
+msgstr "Artículo añadido a la devolución"
+
+msgid "Add Item"
+msgstr "Añadir artículo"
+
+msgid "Item removed from return"
+msgstr "Artículo eliminado de la devolución"
+
+msgid "Reason created"
+msgstr "Motivo creado"
+
+msgid "Add Reason"
+msgstr "Añadir motivo"
+
+#: templates
+msgid "Back to Returns"
+msgstr "Volver a devoluciones"
+
+msgid "Return Information"
+msgstr "Información de la devolución"
+
+msgid "Return Reason"
+msgstr "Motivo de devolución"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Create Return"
+msgstr "Crear devolución"
+
+msgid "Save Changes"
+msgstr "Guardar cambios"
+
+msgid "Refunds"
+msgstr "Reembolsos"
+
+msgid "Completed refund transactions"
+msgstr "Transacciones de reembolso completadas"
+
+msgid "refunds"
+msgstr "reembolsos"
+
+msgid "total"
+msgstr "total"
+
+msgid "All return transactions"
+msgstr "Todas las transacciones de devolución"
+
+msgid "Search by number, customer..."
+msgstr "Buscar por número, cliente..."
+
+msgid "All Status"
+msgstr "Todos los estados"
+
+msgid "All Methods"
+msgstr "Todos los métodos"
+
+msgid "No refunds found"
+msgstr "No se encontraron reembolsos"
+
+msgid "No returns found"
+msgstr "No se encontraron devoluciones"
+
+msgid "Create First Return"
+msgstr "Crear primera devolución"
+
+msgid "Back to Credits"
+msgstr "Volver a créditos"
+
+msgid "Expired"
+msgstr "Vencido"
+
+msgid "Inactive"
+msgstr "Inactivo"
+
+msgid "No customer information"
+msgstr "Sin información del cliente"
+
+msgid "Details"
+msgstr "Detalles"
+
+msgid "Created"
+msgstr "Creado"
+
+msgid "Predefined reasons for product returns"
+msgstr "Motivos predefinidos para devoluciones de productos"
+
+msgid "Restocks"
+msgstr "Repone"
+
+msgid "Note Required"
+msgstr "Nota requerida"
+
+msgid "No return reasons defined"
+msgstr "Sin motivos de devolución definidos"
+
+msgid "Add First Reason"
+msgstr "Añadir primer motivo"
+
+msgid "Returns & Refunds"
+msgstr "Devoluciones y reembolsos"
+
+msgid "Manage product returns, refunds, and store credits"
+msgstr "Gestionar devoluciones de productos, reembolsos y créditos de tienda"
+
+msgid "Total Returns"
+msgstr "Total de devoluciones"
+
+msgid "Refunded"
+msgstr "Reembolsado"
+
+msgid "Quick Actions"
+msgstr "Acciones rápidas"
+
+msgid "Create a new return request"
+msgstr "Crear una nueva solicitud de devolución"
+
+msgid "Issue Store Credit"
+msgstr "Emitir crédito de tienda"
+
+msgid "Create a new store credit for a customer"
+msgstr "Crear un nuevo crédito de tienda para un cliente"
+
+msgid "Manage Reasons"
+msgstr "Gestionar motivos"
+
+msgid "Configure predefined return reasons"
+msgstr "Configurar motivos de devolución predefinidos"
+
+msgid "Recent Returns"
+msgstr "Devoluciones recientes"
+
+msgid "View All"
+msgstr "Ver todo"
+
+msgid "No returns yet"
+msgstr "Sin devoluciones"
+
+msgid "Credit Details"
+msgstr "Detalles del crédito"
+
+msgid "Amount"
+msgstr "Importe"
+
+msgid "Optional"
+msgstr "Opcional"
+
+msgid "Reason for issuing this credit"
+msgstr "Motivo para emitir este crédito"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Phone"
+msgstr "Teléfono"
