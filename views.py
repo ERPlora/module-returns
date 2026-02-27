@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST, require_GET
 
-from apps.accounts.decorators import login_required
+from apps.accounts.decorators import login_required, permission_required
 from apps.core.htmx import htmx_view
 from apps.modules_runtime.navigation import with_module_nav
 
@@ -573,6 +573,7 @@ def refunds(request):
 # =============================================================================
 
 @login_required
+@permission_required('returns.manage_settings')
 @with_module_nav('returns', 'settings')
 @htmx_view('returns/pages/settings.html', 'returns/partials/settings.html')
 def settings_view(request):

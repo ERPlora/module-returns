@@ -82,6 +82,7 @@ PERMISSIONS = [
     ("add_credit", _("Can add store credits")),
     ("change_credit", _("Can edit store credits")),
     ("use_credit", _("Can use store credits")),
+    ("manage_settings", _("Can manage returns settings")),
 ]
 
 # Role Permissions - Default permissions for each system role in this module
