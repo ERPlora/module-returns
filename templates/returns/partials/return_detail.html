@@ -225,24 +225,21 @@ function returnAction(url, action) {
     if (action === 'complete' && !confirm('{% trans "Complete this return and process the refund?" %}')) return;
     fetch(url, {
         method: 'POST',
-        headers: {'X-CSRFToken': '{{ csrf_token }}'},
-    }).then(r => r.json()).then(data => {
+        headers: {'X-CSRFToken': '{{ csrf_token }}'}}).then(r => r.json()).then(data => {
         if (data.success) {
             htmx.ajax('GET', '{% url "returns:return_detail" return_obj.id %}', '#main-content-area');
         }
-    });
-}
+    },
 
 function deleteItem(url) {
     if (confirm('{% trans "Remove this item from the return?" %}')) {
         fetch(url, {
             method: 'POST',
-            headers: {'X-CSRFToken': '{{ csrf_token }}'},
-        }).then(r => r.json()).then(data => {
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}}).then(r => r.json()).then(data => {
             if (data.success) {
                 htmx.ajax('GET', '{% url "returns:return_detail" return_obj.id %}', '#main-content-area');
             }
-        });
+        },
     }
 }
 
@@ -250,12 +247,11 @@ function deleteReturn() {
     if (confirm('{% trans "Delete this return permanently?" %}')) {
         fetch('{% url "returns:return_delete" return_obj.id %}', {
             method: 'POST',
-            headers: {'X-CSRFToken': '{{ csrf_token }}'},
-        }).then(r => r.json()).then(data => {
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}}).then(r => r.json()).then(data => {
             if (data.success) {
                 htmx.ajax('GET', '{% url "returns:return_list" %}', '#main-content-area');
             }
-        });
+        },
     }
 }
 </script>

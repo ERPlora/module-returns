@@ -123,12 +123,11 @@ function deleteReason() {
     if (confirm('{% trans "Delete this reason?" %}')) {
         fetch('{% url "returns:reason_delete" reason.id %}', {
             method: 'POST',
-            headers: {'X-CSRFToken': '{{ csrf_token }}'},
-        }).then(r => r.json()).then(data => {
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}}).then(r => r.json()).then(data => {
             if (data.success) {
                 htmx.ajax('GET', '{% url "returns:reasons" %}', '#main-content-area');
             }
-        });
+        },
     }
 }
 </script>
