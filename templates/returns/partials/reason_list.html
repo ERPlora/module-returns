@@ -30,7 +30,11 @@
                    class="list-item list-item-clickable">
                     <div class="list-item-start">
                         <div class="w-10 h-10 {% if reason.is_active %}bg-success/10{% else %}bg-gray-100{% endif %} rounded-lg flex items-center justify-center">
-                            {% icon "help-circle-outline" css_class="text-xl {% if reason.is_active %}text-success{% else %}text-muted{% endif %}" %}
+                            {% if reason.is_active %}
+                            {% icon "help-circle-outline" css_class="text-xl text-success" %}
+                            {% else %}
+                            {% icon "help-circle-outline" css_class="text-xl text-muted" %}
+                            {% endif %}
                         </div>
                     </div>
                     <div class="list-item-content">

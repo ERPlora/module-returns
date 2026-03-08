@@ -63,7 +63,11 @@
                 <div class="list-item">
                     <div class="list-item-start">
                         <div class="w-10 h-10 {% if credit.is_valid %}bg-success/10{% else %}bg-gray-100{% endif %} rounded-lg flex items-center justify-center">
-                            {% icon "card-outline" css_class="text-xl {% if credit.is_valid %}text-success{% else %}text-muted{% endif %}" %}
+                            {% if credit.is_valid %}
+                            {% icon "card-outline" css_class="text-xl text-success" %}
+                            {% else %}
+                            {% icon "card-outline" css_class="text-xl text-muted" %}
+                            {% endif %}
                         </div>
                     </div>
                     <div class="list-item-content">
