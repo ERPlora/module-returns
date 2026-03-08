@@ -1,4 +1,4 @@
-{% load djicons i18n djicons djicons %}
+{% load djicons i18n %}
 
 <div class="p-4">
     <!-- Page Header -->
@@ -95,21 +95,16 @@
     <!-- List -->
     <div class="card">
         <div class="card-body p-0">
-            {% with items=refunds|default:returns %}
-            {% if items %}
+            {% if refunds %}
             <div class="list">
-                {% for ret in items %}
+                {% for ret in refunds %}
                 <a hx-get="{% url 'returns:return_detail' ret.id %}"
                    hx-target="#main-content-area"
                    hx-push-url="true"
                    class="list-item list-item-clickable">
                     <div class="list-item-start">
-                        <div class="w-10 h-10 {% if refunds %}bg-success/10{% else %}bg-primary/10{% endif %} rounded-lg flex items-center justify-center">
-                            {% if refunds %}
+                        <div class="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
                             {% icon "cash-outline" css_class="text-xl text-success" %}
-                            {% else %}
-                            {% icon "return-down-back-outline" css_class="text-xl text-primary" %}
-                            {% endif %}
                         </div>
                     </div>
                     <div class="list-item-content">
@@ -118,25 +113,52 @@
                             {% if ret.customer %}<span class="text-muted font-normal ml-1">&middot; {{ ret.customer.name }}</span>{% endif %}
                         </div>
                         <div class="list-item-note">
-                            {% if refunds %}{{ ret.completed_at|date:"d/m/Y H:i" }}{% else %}{{ ret.created_at|date:"d/m/Y H:i" }}{% endif %}
+                            {{ ret.completed_at|date:"d/m/Y H:i" }}
                             {% if ret.reason %} &middot; {{ ret.reason.name }}{% endif %}
                             {% if ret.employee %} &middot; {{ ret.employee.name }}{% endif %}
                         </div>
                     </div>
                     <div class="list-item-end text-right">
-                        {% if not refunds %}
+                        <div class="text-sm font-semibold text-success mt-1">{{ ret.total_refund }}</div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% elif returns %}
+            <div class="list">
+                {% for ret in returns %}
+                <a hx-get="{% url 'returns:return_detail' ret.id %}"
+                   hx-target="#main-content-area"
+                   hx-push-url="true"
+                   class="list-item list-item-clickable">
+                    <div class="list-item-start">
+                        <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                            {% icon "return-down-back-outline" css_class="text-xl text-primary" %}
+                        </div>
+                    </div>
+                    <div class="list-item-content">
+                        <div class="list-item-label">
+                            {{ ret.number }}
+                            {% if ret.customer %}<span class="text-muted font-normal ml-1">&middot; {{ ret.customer.name }}</span>{% endif %}
+                        </div>
+                        <div class="list-item-note">
+                            {{ ret.created_at|date:"d/m/Y H:i" }}
+                            {% if ret.reason %} &middot; {{ ret.reason.name }}{% endif %}
+                            {% if ret.employee %} &middot; {{ ret.employee.name }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="list-item-end text-right">
                         <span class="badge color-{% if ret.status == 'pending' %}warning{% elif ret.status == 'approved' %}primary{% elif ret.status == 'completed' %}success{% elif ret.status == 'rejected' %}error{% else %}medium{% endif %}">
                             {{ ret.get_status_display }}
                         </span>
-                        {% endif %}
-                        <div class="text-sm font-semibold {% if refunds %}text-success{% endif %} mt-1">{{ ret.total_refund }}</div>
+                        <div class="text-sm font-semibold mt-1">{{ ret.total_refund }}</div>
                     </div>
                 </a>
                 {% endfor %}
             </div>
             {% else %}
             <div class="text-center py-12 text-muted">
-                {% if refunds %}
+                {% if refund_count is not None %}
                 {% icon "cash-outline" css_class="text-5xl block mx-auto mb-2" %}
                 <p class="mt-2">{% trans "No refunds found" %}</p>
                 {% else %}
@@ -152,7 +174,6 @@
                 {% endif %}
             </div>
             {% endif %}
-            {% endwith %}
         </div>
     </div>
 </div>
