@@ -5,7 +5,7 @@
     <div class="mb-6">
         <div class="flex justify-between items-center">
             <div>
-                {% if refunds %}
+                {% if refund_count is not None %}
                 <h1 class="text-3xl font-bold">{% trans "Refunds" %}</h1>
                 <p class="text-sm mt-2 text-muted">{% trans "Completed refund transactions" %}{% if refund_count %} &middot; {{ refund_count }} {% trans "refunds" %} &middot; {{ total_refunded }} {% trans "total" %}{% endif %}</p>
                 {% else %}
@@ -13,7 +13,7 @@
                 <p class="text-sm mt-2 text-muted">{% trans "All return transactions" %}</p>
                 {% endif %}
             </div>
-            {% if not refunds %}
+            {% if refund_count is None %}
             <button class="btn color-primary"
                 hx-get="{% url 'returns:return_add' %}"
                 hx-target="#main-content-area"
@@ -26,7 +26,7 @@
     </div>
 
     <!-- Filters (only for returns list, not refunds) -->
-    {% if not refunds %}
+    {% if refund_count is None %}
     <div class="card mb-4">
         <div class="card-body">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -72,7 +72,7 @@
             </div>
         </div>
     </div>
-    {% else %}
+    {% elif refund_count is not None %}
     <!-- Search for refunds -->
     <div class="card mb-4">
         <div class="card-body">
