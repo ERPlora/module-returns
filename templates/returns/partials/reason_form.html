@@ -127,7 +127,7 @@ function deleteReason() {
             if (data.success) {
                 htmx.ajax('GET', '{% url "returns:reasons" %}', '#main-content-area');
             }
-        },
+        });
     }
 }
 </script>

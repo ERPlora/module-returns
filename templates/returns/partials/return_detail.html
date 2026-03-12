@@ -229,7 +229,8 @@ function returnAction(url, action) {
         if (data.success) {
             htmx.ajax('GET', '{% url "returns:return_detail" return_obj.id %}', '#main-content-area');
         }
-    },
+    });
+}
 
 function deleteItem(url) {
     if (confirm('{% trans "Remove this item from the return?" %}')) {
@@ -239,7 +240,7 @@ function deleteItem(url) {
             if (data.success) {
                 htmx.ajax('GET', '{% url "returns:return_detail" return_obj.id %}', '#main-content-area');
             }
-        },
+        });
     }
 }
 
@@ -251,7 +252,7 @@ function deleteReturn() {
             if (data.success) {
                 htmx.ajax('GET', '{% url "returns:return_list" %}', '#main-content-area');
             }
-        },
+        });
     }
 }
 </script>
