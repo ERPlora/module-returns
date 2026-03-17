@@ -117,3 +117,65 @@ class ListStoreCredits(AssistantTool):
                 for c in qs[:50]
             ]
         }
+
+
+@register_tool
+class UpdateReturn(AssistantTool):
+    name = "update_return"
+    description = "Update a return's notes and/or status."
+    module_id = "returns"
+    required_permission = "returns.change_return"
+    requires_confirmation = True
+    parameters = {
+        "type": "object",
+        "properties": {
+            "return_id": {"type": "string", "description": "Return ID"},
+            "notes": {"type": "string"},
+            "status": {"type": "string", "description": "pending, approved, rejected, completed, cancelled"},
+        },
+        "required": ["return_id"],
+        "additionalProperties": False,
+    }
+
+    def execute(self, args, request):
+        from returns.models import Return
+        try:
+            r = Return.objects.get(id=args['return_id'])
+        except Return.DoesNotExist:
+            return {"error": f"Return {args['return_id']} not found"}
+        fields = ['updated_at']
+        if 'notes' in args:
+            r.notes = args['notes']
+            fields.append('notes')
+        if 'status' in args:
+            r.status = args['status']
+            fields.append('status')
+        r.save(update_fields=fields)
+        return {"id": str(r.id), "number": r.number, "updated": True}
+
+
+@register_tool
+class DeleteReturn(AssistantTool):
+    name = "delete_return"
+    description = "Delete a return record by ID."
+    module_id = "returns"
+    required_permission = "returns.delete_return"
+    requires_confirmation = True
+    parameters = {
+        "type": "object",
+        "properties": {
+            "return_id": {"type": "string", "description": "Return ID"},
+        },
+        "required": ["return_id"],
+        "additionalProperties": False,
+    }
+
+    def execute(self, args, request):
+        from returns.models import Return
+        try:
+            r = Return.objects.get(id=args['return_id'])
+            number = r.number
+            r.delete()
+            return {"deleted": True, "number": number}
+        except Return.DoesNotExist:
+            return {"error": f"Return {args['return_id']} not found"}
