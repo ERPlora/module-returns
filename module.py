@@ -9,8 +9,8 @@ from django.utils.translation import gettext_lazy as _
 # Module Identification
 MODULE_ID = "returns"
 MODULE_NAME = _("Returns")
-MODULE_ICON = "arrow-undo-outline"
-MODULE_VERSION = "1.0.0"
+MODULE_ICON = 'material:assignment_return'
+MODULE_VERSION = '1.0.1'
 MODULE_CATEGORY = "sales"  # Changed from "operations" to valid category
 
 # Target Industries (business verticals this module is designed for)
