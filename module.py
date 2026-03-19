@@ -10,7 +10,9 @@ from django.utils.translation import gettext_lazy as _
 MODULE_ID = "returns"
 MODULE_NAME = _("Returns")
 MODULE_ICON = 'material:assignment_return'
-MODULE_VERSION = '1.0.1'
+MODULE_VERSION = '1.0.2'
+MODULE_DESCRIPTION = _('Product returns, refunds, and exchange processing')
+MODULE_AUTHOR = 'ERPlora'
 MODULE_CATEGORY = "sales"  # Changed from "operations" to valid category
 
 # Target Industries (business verticals this module is designed for)
