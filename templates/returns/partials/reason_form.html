@@ -118,7 +118,7 @@
 </div>
 
 {% if not is_new %}
-<script>
+<script nonce="{{ csp_nonce }}">
 function deleteReason() {
     if (confirm('{% trans "Delete this reason?" %}')) {
         fetch('{% url "returns:reason_delete" reason.id %}', {

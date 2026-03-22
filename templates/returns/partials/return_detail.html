@@ -219,7 +219,7 @@
     {% endif %}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function returnAction(url, action) {
     if (action === 'reject' && !confirm('{% trans "Reject this return?" %}')) return;
     if (action === 'complete' && !confirm('{% trans "Complete this return and process the refund?" %}')) return;
