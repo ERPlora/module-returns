@@ -14,6 +14,7 @@ MODULE_VERSION = '1.0.2'
 MODULE_DESCRIPTION = _('Product returns, refunds, and exchange processing')
 MODULE_AUTHOR = 'ERPlora'
 MODULE_CATEGORY = "sales"  # Changed from "operations" to valid category
+HAS_MODELS = True
 
 # Target Industries (business verticals this module is designed for)
 MODULE_INDUSTRIES = [
